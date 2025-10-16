@@ -249,7 +249,7 @@ bool match_pattern_2(
       pattern_token);
     if (anchored_end) {
       if (p >= pattern_size && i < input_line.size()) {
-        p = 0;
+        p = anchored_beginning ? 1 : 0;
       }
     }
   }
@@ -335,6 +335,7 @@ int main(int argc, char* argv[]) {
   auto r5 = match_pattern(
     std::string("sally has 12 apples"), std::string("\\d\\\\d\\\\d apples"));
   auto r6 = match_pattern(std::string("abc123cde"), std::string("\\w\\w\\w$"));
+  auto r7 = match_pattern(std::string("strawberry_strawberry"), std::string("^strawberry$"));
 
   auto t1 = parse_pattern(std::string("\\d \\w\\w\\ws"));
   auto t2 = parse_pattern(std::string("\\d apple"));
@@ -342,6 +343,7 @@ int main(int argc, char* argv[]) {
   auto t4 = parse_pattern(std::string("[orange]"));
   auto t5 = parse_pattern(std::string("\\d\\\\d\\\\d apples"));
   auto t6 = parse_pattern(std::string("\\w\\w\\w$"));
+  auto t7 = parse_pattern(std::string("^strawberry$"));
 
   auto rr1 = match_pattern_2(std::string("4 cats"), t1);
   auto rr2 = match_pattern_2(std::string("sally has 1 orange"), t2);
@@ -349,6 +351,7 @@ int main(int argc, char* argv[]) {
   auto rr4 = match_pattern_2(std::string("e"), t4);
   auto rr5 = match_pattern_2(std::string("sally has 12 apples"), t5);
   auto rr6 = match_pattern_2(std::string("abc123cde"), t6);
+  auto rr7 = match_pattern_2(std::string("strawberry_strawberry"), t7);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
