@@ -41,26 +41,96 @@ bool match_negative_characters(
 
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
-  if (pattern.length() == 1) {
-    return match_literal(input_line, pattern);
-  } else if (pattern == "\\d") {
-    return match_digit(input_line);
-  } else if (pattern == "\\w") {
-    return match_word_character(input_line);
-  } else if (pattern[0] == '[') {
-    if (pattern[1] == '^') {
-      return match_negative_characters(input_line, pattern);
+  int p = 0;
+  int i = 0;
+  for (; i < input_line.size() && p < pattern.size();) {
+    if (pattern[p] != '\\' && pattern[p] != '[') {
+      if (input_line[i] == pattern[p]) {
+        i++;
+        p++;
+      } else {
+        // don't skip character
+        if (p == 0) {
+          i++;
+        }
+        p = 0;
+      }
+    } else {
+      if (pattern[p] == '\\') {
+        if (pattern[p + 1] == 'd') {
+          if (std::isdigit(input_line[i])) {
+            p += 2;
+            return true;
+          } else {
+            i++;
+          }
+        } else if (pattern[p + 1] == 'w') {
+          if (std::isalnum(input_line[i]) || input_line[i] == '_') {
+            p += 2;
+            return true;
+          } else {
+            i++;
+          }
+        }
+      } else if (pattern[p] == '[') {
+        if (pattern[p + 1] == '^') {
+          auto temp = pattern.substr(p + 2);
+          const auto end = pattern.find(']');
+          const auto characters = pattern.substr(0, end);
+          auto not_found = std::any_of(
+            input_line.begin(), input_line.end(),
+            [&characters](const unsigned char c) {
+              return characters.find(c) == std::string::npos;
+            });
+          if (not_found) {
+            return true;
+          } else {
+            p += end - p;
+            i += input_line.size() - i;
+          }
+        } else {
+          auto temp = pattern.substr(p + 1);
+          const auto end = temp.find(']');
+          const auto characters = temp.substr(0, end);
+          auto exists = std::any_of(
+            characters.begin(), characters.end(),
+            [&input_line, i](const unsigned char c) {
+              return input_line.find(c) != std::string::npos;
+            });
+          if (exists) {
+            return true;
+          } else {
+            p += end - p;
+            i += input_line.size() - i;
+          }
+        }
+      }
     }
-    return match_positive_characters(input_line, pattern);
-  } else {
-    throw std::runtime_error("Unhandled pattern " + std::string(pattern));
   }
+  return p == pattern.size();
+
+  // if (pattern.length() == 1) {
+  //   return match_literal(input_line, pattern);
+  // } else if (pattern == "\\d") {
+  //   return match_digit(input_line);
+  // } else if (pattern == "\\w") {
+  //   return match_word_character(input_line);
+  // } else if (pattern[0] == '[') {
+  //   if (pattern[1] == '^') {
+  //     return match_negative_characters(input_line, pattern);
+  //   }
+  //   return match_positive_characters(input_line, pattern);
+  // } else {
+  //   throw std::runtime_error("Unhandled pattern " + std::string(pattern));
+  // }
 }
 
 int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  auto r = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
