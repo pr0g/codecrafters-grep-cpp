@@ -5,15 +5,15 @@ bool match_pattern(const std::string& input_line, const std::string& pattern) {
   if (pattern.length() == 1) {
     return input_line.find(pattern) != std::string::npos;
   } else if (pattern == "\\d") {
-    for (const auto c : input_line) {
+    for (const unsigned char c : input_line) {
       if (std::isdigit(c)) {
         return true;
       }
     }
     return false;
   } else if (pattern == "\\w") {
-    for (const auto c : input_line) {
-      if (std::isalnum(c)) {
+    for (const unsigned char c : input_line) {
+      if (std::isalnum(c) || std::ispunct(c)) {
         return true;
       }
     }
@@ -27,10 +27,6 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-
-  // You can use print statements as follows for debugging, they'll be visible
-  // when running tests.
-  std::cerr << "Logs from your program will appear here" << std::endl;
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -50,8 +46,10 @@ int main(int argc, char* argv[]) {
 
   try {
     if (match_pattern(input_line, pattern)) {
+      std::cerr << std::format("0\n");
       return 0;
     } else {
+      std::cerr << std::format("1\n");
       return 1;
     }
   } catch (const std::runtime_error& e) {
