@@ -29,6 +29,16 @@ bool match_positive_characters(
     });
 }
 
+bool match_negative_characters(
+  const std::string_view input_line, const std::string_view pattern) {
+  const auto end = pattern.find(']');
+  const auto characters = pattern.substr(2, end - 2);
+  return std::any_of(
+    input_line.begin(), input_line.end(), [&characters](const unsigned char c) {
+      return characters.find(c) == std::string::npos;
+    });
+}
+
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
   if (pattern.length() == 1) {
@@ -39,13 +49,7 @@ bool match_pattern(
     return match_word_character(input_line);
   } else if (pattern[0] == '[') {
     if (pattern[1] == '^') {
-      const auto end = pattern.find(']');
-      const auto characters = pattern.substr(2, end - 2);
-      return std::any_of(
-        input_line.begin(), input_line.end(),
-        [&characters](const unsigned char c) {
-          return characters.find(c) == std::string::npos;
-        });
+      return match_negative_characters(input_line, pattern);
     }
     return match_positive_characters(input_line, pattern);
   } else {
