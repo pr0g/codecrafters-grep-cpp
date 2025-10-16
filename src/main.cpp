@@ -4,43 +4,6 @@
 #include <span>
 #include <string>
 
-bool match_literal(
-  const std::string_view input_line, const std::string_view pattern) {
-  return input_line.find(pattern) != std::string_view::npos;
-}
-
-bool match_digit(const std::string_view input_line) {
-  return std::any_of(
-    input_line.begin(), input_line.end(),
-    [](const unsigned char c) { return std::isdigit(c); });
-}
-
-bool match_word_character(const std::string_view input_line) {
-  return std::any_of(
-    input_line.begin(), input_line.end(),
-    [](const unsigned char c) { return std::isalnum(c) || c == '_'; });
-}
-
-bool match_positive_characters(
-  const std::string_view input_line, const std::string_view pattern) {
-  const auto end = pattern.find(']');
-  const auto characters = pattern.substr(1, end - 1);
-  return std::any_of(
-    characters.begin(), characters.end(), [&input_line](const unsigned char c) {
-      return input_line.find(c) != std::string::npos;
-    });
-}
-
-bool match_negative_characters(
-  const std::string_view input_line, const std::string_view pattern) {
-  const auto end = pattern.find(']');
-  const auto characters = pattern.substr(2, end - 2);
-  return std::any_of(
-    input_line.begin(), input_line.end(), [&characters](const unsigned char c) {
-      return characters.find(c) == std::string::npos;
-    });
-}
-
 bool is_literal(const char c) {
   // todo - more regex meta characters to add
   return c != '\\' && c != '[';
@@ -59,93 +22,93 @@ bool is_negating(const std::string_view subpattern) {
   return subpattern[0] == '[' && subpattern[1] == '^';
 }
 
+bool is_digit(const char c) {
+  return c == 'd';
+}
+
+template<typename character_group_fn>
+std::tuple<int, int> character_groups_match(
+  std::string_view input, int i, std::string_view pattern, int p, int skip,
+  const character_group_fn& character_group_matcher) {
+  const auto offset = p + skip;
+  const auto end = pattern.find(']', offset);
+  const auto characters = pattern.substr(offset, end - offset);
+  auto result = character_group_matcher(input, characters);
+  if (result) {
+    return {i + 1, (end - p) + 1};
+  } else {
+    return {input.size(), p};
+  }
+}
+
+template<typename character_class_fn>
+std::tuple<int, int> character_class_match(
+  std::string_view input, int i, int p,
+  const character_class_fn& character_class_matcher) {
+  if (character_class_matcher(input[i])) {
+    return {i + 1, p + 2};
+  } else {
+    return {i + 1, p};
+  }
+}
+
+std::tuple<int, int> literal_check(
+  std::string_view input, int i, std::string_view pattern, int p) {
+  if (input[i] == pattern[p]) {
+    return {i + 1, p + 1};
+  } else {
+    // if there are currently no matches, move to the next character
+    // otherwise, reset pattern search, and stay on the current character
+    return p == 0 ? std::tuple<int, int>{i + 1, p} : std::tuple<int, int>{i, 0};
+  }
+}
+
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
   int p = 0;
   for (int i = 0; i < input_line.size() && p < pattern.size();) {
     if (is_literal(pattern[p])) {
-      if (input_line[i] == pattern[p]) {
-        i++;
-        p++;
-      } else {
-        // don't skip character
-        if (p == 0) {
-          i++;
-        }
-        // reset match search
-        p = 0;
-      }
+      std::tie(i, p) = literal_check(input_line, i, pattern, p);
     } else {
       if (is_escape(pattern[p])) {
-        if (pattern[p + 1] == 'd') {
-          if (std::isdigit(input_line[i])) {
-            p += 2;
-            i++;
-          } else {
-            i++;
-          }
+        if (is_digit(pattern[p + 1])) {
+          std::tie(i, p) = character_class_match(
+            input_line, i, p, [](const char c) { return std::isdigit(c); });
         } else if (pattern[p + 1] == 'w') {
-          if (std::isalnum(input_line[i]) || input_line[i] == '_') {
-            p += 2;
-            i++;
-          } else {
-            i++;
-          }
+          std::tie(i, p) =
+            character_class_match(input_line, i, p, [](const char c) {
+              return std::isalnum(c) || c == '_';
+            });
         } else if (pattern[p + 1] == '\\') {
-          p++;
           i++;
+          p++;
         }
       } else if (is_character_opener(pattern[p])) {
         if (is_negating(pattern.substr(p, 2))) {
-          const auto offset = p + 2;
-          const auto end = pattern.find(']', offset);
-          const auto characters = pattern.substr(offset, end - offset);
-          auto not_found = std::any_of(
-            input_line.begin(), input_line.end(),
-            [&characters](const unsigned char c) {
-              return characters.find(c) == std::string::npos;
+          std::tie(i, p) = character_groups_match(
+            input_line, i, pattern, p, 2,
+            [](std::string_view input, std::string_view characters) {
+              return std::any_of(
+                input.begin(), input.end(),
+                [&characters](const unsigned char c) {
+                  return characters.find(c) == std::string::npos;
+                });
             });
-          if (not_found) {
-            p += (end - p) + 1;
-            i++;
-          } else {
-            i += input_line.size() - i;
-          }
         } else {
-          const auto offset = p + 1;
-          const auto end = pattern.find(']', offset);
-          const auto characters = pattern.substr(offset, end - offset);
-          auto found = std::any_of(
-            characters.begin(), characters.end(),
-            [&input_line, i](const unsigned char c) {
-              return input_line.find(c) != std::string::npos;
+          std::tie(i, p) = character_groups_match(
+            input_line, i, pattern, p, 1,
+            [](std::string_view input, std::string_view characters) {
+              return std::any_of(
+                characters.begin(), characters.end(),
+                [&input](const unsigned char c) {
+                  return input.find(c) != std::string::npos;
+                });
             });
-          if (found) {
-            p += (end - p) + 1;
-            i++;
-          } else {
-            i += input_line.size() - i;
-          }
         }
       }
     }
   }
   return p == pattern.size();
-
-  // if (pattern.length() == 1) {
-  //   return match_literal(input_line, pattern);
-  // } else if (pattern == "\\d") {
-  //   return match_digit(input_line);
-  // } else if (pattern == "\\w") {
-  //   return match_word_character(input_line);
-  // } else if (pattern[0] == '[') {
-  //   if (pattern[1] == '^') {
-  //     return match_negative_characters(input_line, pattern);
-  //   }
-  //   return match_positive_characters(input_line, pattern);
-  // } else {
-  //   throw std::runtime_error("Unhandled pattern " + std::string(pattern));
-  // }
 }
 
 int main(int argc, char* argv[]) {
