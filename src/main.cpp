@@ -3,14 +3,20 @@
 #include <iostream>
 #include <span>
 #include <string>
+#include <variant>
+#include <vector>
 
 bool is_literal(const char c) {
   // todo - more regex meta characters to add
   return c != '\\' && c != '[';
 }
 
-bool is_anchor(const char c) {
+bool anchored_at_beginning(const char c) {
   return c == '^';
+}
+
+bool anchored_at_end(const char c) {
+  return c == '$';
 }
 
 bool is_escape(const char c) {
@@ -28,6 +34,10 @@ bool is_negating(const std::string_view subpattern) {
 
 bool is_digit(const char c) {
   return c == 'd';
+}
+
+bool is_word(const char c) {
+  return c == 'w';
 }
 
 template<typename character_group_fn>
@@ -58,13 +68,13 @@ std::tuple<int, int> character_class_match(
 
 std::tuple<int, int> literal_check(
   std::string_view input, int i, std::string_view pattern, int p,
-  bool anchored) {
+  bool anchored_beginning) {
   if (input[i] == pattern[p]) {
     return {i + 1, p + 1};
   } else {
     // if there are currently no matches, move to the next character
     // otherwise, reset pattern search, and stay on the current character
-    if (anchored) {
+    if (anchored_beginning) {
       return std::tuple<int, int>{input.size(), p};
     } else {
       return p == 0 ? std::tuple<int, int>{i + 1, p}
@@ -73,23 +83,104 @@ std::tuple<int, int> literal_check(
   }
 }
 
+struct literal_t {
+  char l;
+};
+
+struct digit_t {};
+
+struct word_t {};
+
+// todo - fix me (remove - handle as literal)
+struct backslash_t {};
+
+struct positive_character_group_t {
+  std::string group;
+};
+
+struct negative_character_group_t {
+  std::string group;
+};
+
+struct begin_anchor_t {};
+
+struct end_anchor_t {};
+
+using pattern_token_t = std::variant<
+  literal_t, digit_t, word_t, positive_character_group_t,
+  negative_character_group_t, begin_anchor_t, end_anchor_t, backslash_t>;
+
+std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
+  std::vector<pattern_token_t> pattern_tokens;
+  bool anchored_beginning = anchored_at_beginning(pattern.front());
+  if (anchored_beginning) {
+    pattern_tokens.push_back(begin_anchor_t{});
+  }
+  for (int p = anchored_beginning ? 1 : 0; p < pattern.size();) {
+    if (is_literal(pattern[p])) {
+      pattern_tokens.push_back(literal_t{.l = pattern[p++]});
+    } else {
+      if (is_escape(pattern[p])) {
+        if (is_digit(pattern[p + 1])) {
+          pattern_tokens.push_back(digit_t{});
+          p += 2;
+        } else if (is_word(pattern[p + 1])) {
+          pattern_tokens.push_back(word_t{});
+          p += 2;
+        } else if (pattern[p + 1] == '\\') {
+          pattern_tokens.push_back(backslash_t{});
+          p++;
+        }
+      } else if (is_character_opener(pattern[p])) {
+        if (is_negating(pattern.substr(p, 2))) {
+          const auto offset = p + 2;
+          const auto end = pattern.find(']', offset);
+          const auto characters = pattern.substr(offset, end - offset);
+          pattern_tokens.push_back(
+            negative_character_group_t{.group = std::string(characters)});
+          p += characters.size() + 3;
+        } else {
+          const auto offset = p + 1;
+          const auto end = pattern.find(']', offset);
+          const auto characters = pattern.substr(offset, end - offset);
+          pattern_tokens.push_back(
+            positive_character_group_t{.group = std::string(characters)});
+          p += characters.size() + 2;
+        }
+      }
+    }
+  }
+  return pattern_tokens;
+}
+
+// todo...
+bool match_pattern_2(
+  const std::string_view input_line,
+  const std::span<pattern_token_t> pattern_tokens) {
+  int p = 0;
+  for (int i = 0; i < input_line.size() && p < pattern_tokens.size();) {
+    auto pattern_token = pattern_tokens[p];
+  }
+  return false;
+}
+
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
-  bool anchored = false;
-  int p = 0;
-  for (int i = 0; i < input_line.size() && p < pattern.size();) {
-    if (is_anchor(pattern[p])) {
-      anchored = true;
-      p++;
-    }
+  bool anchored_beginning = anchored_at_beginning(pattern.front());
+  bool anchored_end = anchored_at_end(pattern.back());
+  int i = 0;
+  int p = anchored_beginning ? 1 : 0;
+  int pattern_size = anchored_end ? pattern.size() - 1 : pattern.size();
+  while (i < input_line.size() && p < pattern_size) {
     if (is_literal(pattern[p])) {
-      std::tie(i, p) = literal_check(input_line, i, pattern, p, anchored);
+      std::tie(i, p) =
+        literal_check(input_line, i, pattern, p, anchored_beginning);
     } else {
       if (is_escape(pattern[p])) {
         if (is_digit(pattern[p + 1])) {
           std::tie(i, p) = character_class_match(
             input_line, i, p, [](const char c) { return std::isdigit(c); });
-        } else if (pattern[p + 1] == 'w') {
+        } else if (is_word(pattern[p + 1])) {
           std::tie(i, p) =
             character_class_match(input_line, i, p, [](const char c) {
               return std::isalnum(c) || c == '_';
@@ -122,8 +213,17 @@ bool match_pattern(
         }
       }
     }
+    if (anchored_end) {
+      if (p >= pattern_size && i < input_line.size()) {
+        p = 0;
+      }
+    }
   }
-  return p == pattern.size();
+  if (anchored_end) {
+    return p == pattern_size && i == input_line.size();
+  } else {
+    return p == pattern_size;
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -131,13 +231,20 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  auto r = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
+  auto r1 = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
   auto r2 =
     match_pattern(std::string("sally has 1 orange"), std::string("\\d apple"));
   auto r3 = match_pattern(std::string("orange"), std::string("[^opq]"));
   auto r4 = match_pattern(std::string("e"), std::string("[orange]"));
   auto r5 = match_pattern(
     std::string("sally has 12 apples"), std::string("\\d\\\\d\\\\d apples"));
+  auto r6 = match_pattern(std::string("abc123cde"), std::string("\\w\\w\\w$"));
+
+  auto t1 = parse_pattern(std::string("\\d \\w\\w\\ws"));
+  auto t2 = parse_pattern(std::string("\\d apple"));
+  auto t3 = parse_pattern(std::string("[^opq]"));
+  auto t4 = parse_pattern(std::string("[orange]"));
+  auto t5 = parse_pattern(std::string("\\d\\\\d\\\\d apples"));
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
