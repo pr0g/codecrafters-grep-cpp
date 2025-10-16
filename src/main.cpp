@@ -60,47 +60,51 @@ bool match_pattern(
         if (pattern[p + 1] == 'd') {
           if (std::isdigit(input_line[i])) {
             p += 2;
-            return true;
+            i++;
+            // return true;
           } else {
             i++;
           }
         } else if (pattern[p + 1] == 'w') {
           if (std::isalnum(input_line[i]) || input_line[i] == '_') {
             p += 2;
-            return true;
+            i++;
+            // return true;
           } else {
             i++;
           }
         }
       } else if (pattern[p] == '[') {
         if (pattern[p + 1] == '^') {
-          auto temp = pattern.substr(p + 2);
-          const auto end = pattern.find(']');
-          const auto characters = pattern.substr(0, end);
+          const auto end = pattern.find(']', p + 2);
+          const auto characters = pattern.substr(p + 2, end - (p + 2));
           auto not_found = std::any_of(
             input_line.begin(), input_line.end(),
             [&characters](const unsigned char c) {
               return characters.find(c) == std::string::npos;
             });
           if (not_found) {
-            return true;
+            // return true;
+            p += (end - p) + 1;
+            i++;
           } else {
-            p += end - p;
+            // p += end - p;
             i += input_line.size() - i;
           }
         } else {
-          auto temp = pattern.substr(p + 1);
-          const auto end = temp.find(']');
-          const auto characters = temp.substr(0, end);
+          const auto end = pattern.find(']', p + 1);
+          const auto characters = pattern.substr(p + 1, end - (p + 1));
           auto exists = std::any_of(
             characters.begin(), characters.end(),
             [&input_line, i](const unsigned char c) {
               return input_line.find(c) != std::string::npos;
             });
           if (exists) {
-            return true;
+            // return true;
+            p += (end - p) + 1;
+            i++;
           } else {
-            p += end - p;
+            // p += end - p;
             i += input_line.size() - i;
           }
         }
@@ -131,6 +135,10 @@ int main(int argc, char* argv[]) {
   std::cerr << std::unitbuf;
 
   auto r = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
+  auto r2 =
+    match_pattern(std::string("sally has 1 orange"), std::string("\\d apple"));
+  auto r3 = match_pattern(std::string("orange"), std::string("[^opq]"));
+  auto r4 = match_pattern(std::string("e"), std::string("[orange]"));
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -148,6 +156,8 @@ int main(int argc, char* argv[]) {
   std::string input_line;
   std::getline(std::cin, input_line);
 
+  std::println("{}", input_line);
+  
   try {
     if (match_pattern(input_line, pattern)) {
       std::cerr << std::format("0\n");
