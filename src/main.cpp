@@ -156,8 +156,6 @@ int main(int argc, char* argv[]) {
   std::string input_line;
   std::getline(std::cin, input_line);
 
-  std::println("{}", input_line);
-  
   try {
     if (match_pattern(input_line, pattern)) {
       std::cerr << std::format("0\n");
