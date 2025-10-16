@@ -1,23 +1,30 @@
+#include <algorithm>
 #include <iostream>
 #include <string>
 
+bool match_literal(const std::string& input_line, const std::string& pattern) {
+  return input_line.find(pattern) != std::string::npos;
+}
+
+bool match_digit(const std::string& input_line) {
+  return std::any_of(
+    input_line.begin(), input_line.end(),
+    [](const unsigned char c) { return std::isdigit(c); });
+}
+
+bool match_word_character(const std::string& input_line) {
+  return std::any_of(
+    input_line.begin(), input_line.end(),
+    [](const unsigned char c) { return std::isalnum(c) || c == '_'; });
+}
+
 bool match_pattern(const std::string& input_line, const std::string& pattern) {
   if (pattern.length() == 1) {
-    return input_line.find(pattern) != std::string::npos;
+    return match_literal(input_line, pattern);
   } else if (pattern == "\\d") {
-    for (const unsigned char c : input_line) {
-      if (std::isdigit(c)) {
-        return true;
-      }
-    }
-    return false;
+    return match_digit(input_line);
   } else if (pattern == "\\w") {
-    for (const unsigned char c : input_line) {
-      if (std::isalnum(c) || c == '_') {
-        return true;
-      }
-    }
-    return false;
+    return match_word_character(input_line);
   } else {
     throw std::runtime_error("Unhandled pattern " + pattern);
   }
