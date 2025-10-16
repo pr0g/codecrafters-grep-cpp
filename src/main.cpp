@@ -19,6 +19,16 @@ bool match_word_character(const std::string_view input_line) {
     [](const unsigned char c) { return std::isalnum(c) || c == '_'; });
 }
 
+bool match_positive_characters(
+  const std::string_view input_line, const std::string_view pattern) {
+  const auto end = pattern.find(']');
+  const auto characters = pattern.substr(1, end - 1);
+  return std::any_of(
+    characters.begin(), characters.end(), [&input_line](const unsigned char c) {
+      return input_line.find(c) != std::string::npos;
+    });
+}
+
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
   if (pattern.length() == 1) {
@@ -28,13 +38,7 @@ bool match_pattern(
   } else if (pattern == "\\w") {
     return match_word_character(input_line);
   } else if (pattern[0] == '[') {
-    auto end = pattern.find(']');
-    const auto characters = pattern.substr(1, end - 1);
-    return std::any_of(
-      characters.begin(), characters.end(),
-      [&input_line](const unsigned char c) {
-        return input_line.find(c) != std::string::npos;
-      });
+    return match_positive_characters(input_line, pattern);
   } else {
     throw std::runtime_error("Unhandled pattern " + std::string(pattern));
   }
