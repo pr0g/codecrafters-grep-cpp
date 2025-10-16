@@ -2,23 +2,25 @@
 #include <iostream>
 #include <string>
 
-bool match_literal(const std::string& input_line, const std::string& pattern) {
-  return input_line.find(pattern) != std::string::npos;
+bool match_literal(
+  const std::string_view input_line, const std::string_view pattern) {
+  return input_line.find(pattern) != std::string_view::npos;
 }
 
-bool match_digit(const std::string& input_line) {
+bool match_digit(const std::string_view input_line) {
   return std::any_of(
     input_line.begin(), input_line.end(),
     [](const unsigned char c) { return std::isdigit(c); });
 }
 
-bool match_word_character(const std::string& input_line) {
+bool match_word_character(const std::string_view input_line) {
   return std::any_of(
     input_line.begin(), input_line.end(),
     [](const unsigned char c) { return std::isalnum(c) || c == '_'; });
 }
 
-bool match_pattern(const std::string& input_line, const std::string& pattern) {
+bool match_pattern(
+  const std::string_view input_line, const std::string_view pattern) {
   if (pattern.length() == 1) {
     return match_literal(input_line, pattern);
   } else if (pattern == "\\d") {
@@ -27,13 +29,14 @@ bool match_pattern(const std::string& input_line, const std::string& pattern) {
     return match_word_character(input_line);
   } else if (pattern[0] == '[') {
     auto end = pattern.find(']');
-    auto characters = pattern.substr(1, end - 1);
+    const auto characters = pattern.substr(1, end - 1);
     return std::any_of(
-      pattern.begin(), pattern.end(), [&input_line](const unsigned char c) {
+      characters.begin(), characters.end(),
+      [&input_line](const unsigned char c) {
         return input_line.find(c) != std::string::npos;
       });
   } else {
-    throw std::runtime_error("Unhandled pattern " + pattern);
+    throw std::runtime_error("Unhandled pattern " + std::string(pattern));
   }
 }
 
