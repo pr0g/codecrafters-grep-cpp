@@ -28,7 +28,6 @@ bool match_pattern(const std::string& input_line, const std::string& pattern) {
   } else if (pattern[0] == '[') {
     auto end = pattern.find(']');
     auto characters = pattern.substr(1, end - 1);
-    std::println("{}", characters);
     return std::any_of(
       pattern.begin(), pattern.end(), [&input_line](const unsigned char c) {
         return input_line.find(c) != std::string::npos;
