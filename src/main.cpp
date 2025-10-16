@@ -25,6 +25,14 @@ bool match_pattern(const std::string& input_line, const std::string& pattern) {
     return match_digit(input_line);
   } else if (pattern == "\\w") {
     return match_word_character(input_line);
+  } else if (pattern[0] == '[') {
+    auto end = pattern.find(']');
+    auto characters = pattern.substr(1, end - 1);
+    std::println("{}", characters);
+    return std::any_of(
+      pattern.begin(), pattern.end(), [&input_line](const unsigned char c) {
+        return input_line.find(c) != std::string::npos;
+      });
   } else {
     throw std::runtime_error("Unhandled pattern " + pattern);
   }
