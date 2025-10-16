@@ -73,6 +73,9 @@ bool match_pattern(
           } else {
             i++;
           }
+        } else if (pattern[p + 1] == '\\') {
+          p++;
+          i++;
         }
       } else if (pattern[p] == '[') {
         if (pattern[p + 1] == '^') {
@@ -139,6 +142,8 @@ int main(int argc, char* argv[]) {
     match_pattern(std::string("sally has 1 orange"), std::string("\\d apple"));
   auto r3 = match_pattern(std::string("orange"), std::string("[^opq]"));
   auto r4 = match_pattern(std::string("e"), std::string("[orange]"));
+  auto r5 = match_pattern(
+    std::string("sally has 12 apples"), std::string("\\d\\\\d\\\\d apples"));
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
