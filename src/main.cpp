@@ -38,6 +38,15 @@ bool match_pattern(
   } else if (pattern == "\\w") {
     return match_word_character(input_line);
   } else if (pattern[0] == '[') {
+    if (pattern[1] == '^') {
+      const auto end = pattern.find(']');
+      const auto characters = pattern.substr(2, end - 2);
+      return std::any_of(
+        input_line.begin(), input_line.end(),
+        [&characters](const unsigned char c) {
+          return characters.find(c) == std::string::npos;
+        });
+    }
     return match_positive_characters(input_line, pattern);
   } else {
     throw std::runtime_error("Unhandled pattern " + std::string(pattern));
