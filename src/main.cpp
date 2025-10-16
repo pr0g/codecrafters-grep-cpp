@@ -53,6 +53,7 @@ bool match_pattern(
         if (p == 0) {
           i++;
         }
+        // reset match search
         p = 0;
       }
     } else {
@@ -61,7 +62,6 @@ bool match_pattern(
           if (std::isdigit(input_line[i])) {
             p += 2;
             i++;
-            // return true;
           } else {
             i++;
           }
@@ -69,7 +69,6 @@ bool match_pattern(
           if (std::isalnum(input_line[i]) || input_line[i] == '_') {
             p += 2;
             i++;
-            // return true;
           } else {
             i++;
           }
@@ -87,27 +86,23 @@ bool match_pattern(
               return characters.find(c) == std::string::npos;
             });
           if (not_found) {
-            // return true;
             p += (end - p) + 1;
             i++;
           } else {
-            // p += end - p;
             i += input_line.size() - i;
           }
         } else {
           const auto end = pattern.find(']', p + 1);
           const auto characters = pattern.substr(p + 1, end - (p + 1));
-          auto exists = std::any_of(
+          auto found = std::any_of(
             characters.begin(), characters.end(),
             [&input_line, i](const unsigned char c) {
               return input_line.find(c) != std::string::npos;
             });
-          if (exists) {
-            // return true;
+          if (found) {
             p += (end - p) + 1;
             i++;
           } else {
-            // p += end - p;
             i += input_line.size() - i;
           }
         }
