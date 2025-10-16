@@ -9,6 +9,10 @@ bool is_literal(const char c) {
   return c != '\\' && c != '[';
 }
 
+bool is_anchor(const char c) {
+  return c == '^';
+}
+
 bool is_escape(const char c) {
   return c == '\\';
 }
@@ -53,22 +57,33 @@ std::tuple<int, int> character_class_match(
 }
 
 std::tuple<int, int> literal_check(
-  std::string_view input, int i, std::string_view pattern, int p) {
+  std::string_view input, int i, std::string_view pattern, int p,
+  bool anchored) {
   if (input[i] == pattern[p]) {
     return {i + 1, p + 1};
   } else {
     // if there are currently no matches, move to the next character
     // otherwise, reset pattern search, and stay on the current character
-    return p == 0 ? std::tuple<int, int>{i + 1, p} : std::tuple<int, int>{i, 0};
+    if (anchored) {
+      return std::tuple<int, int>{input.size(), p};
+    } else {
+      return p == 0 ? std::tuple<int, int>{i + 1, p}
+                    : std::tuple<int, int>{i, 0};
+    }
   }
 }
 
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
+  bool anchored = false;
   int p = 0;
   for (int i = 0; i < input_line.size() && p < pattern.size();) {
+    if (is_anchor(pattern[p])) {
+      anchored = true;
+      p++;
+    }
     if (is_literal(pattern[p])) {
-      std::tie(i, p) = literal_check(input_line, i, pattern, p);
+      std::tie(i, p) = literal_check(input_line, i, pattern, p, anchored);
     } else {
       if (is_escape(pattern[p])) {
         if (is_digit(pattern[p + 1])) {
