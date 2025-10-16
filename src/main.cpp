@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <cassert>
 #include <iostream>
+#include <span>
 #include <string>
 
 bool match_literal(
@@ -39,12 +41,29 @@ bool match_negative_characters(
     });
 }
 
+bool is_literal(const char c) {
+  // todo - more regex meta characters to add
+  return c != '\\' && c != '[';
+}
+
+bool is_escape(const char c) {
+  return c == '\\';
+}
+
+bool is_character_opener(const char c) {
+  return c == '[';
+}
+
+bool is_negating(const std::string_view subpattern) {
+  assert(subpattern.size() == 2);
+  return subpattern[0] == '[' && subpattern[1] == '^';
+}
+
 bool match_pattern(
   const std::string_view input_line, const std::string_view pattern) {
   int p = 0;
-  int i = 0;
-  for (; i < input_line.size() && p < pattern.size();) {
-    if (pattern[p] != '\\' && pattern[p] != '[') {
+  for (int i = 0; i < input_line.size() && p < pattern.size();) {
+    if (is_literal(pattern[p])) {
       if (input_line[i] == pattern[p]) {
         i++;
         p++;
@@ -57,7 +76,7 @@ bool match_pattern(
         p = 0;
       }
     } else {
-      if (pattern[p] == '\\') {
+      if (is_escape(pattern[p])) {
         if (pattern[p + 1] == 'd') {
           if (std::isdigit(input_line[i])) {
             p += 2;
@@ -76,10 +95,11 @@ bool match_pattern(
           p++;
           i++;
         }
-      } else if (pattern[p] == '[') {
-        if (pattern[p + 1] == '^') {
-          const auto end = pattern.find(']', p + 2);
-          const auto characters = pattern.substr(p + 2, end - (p + 2));
+      } else if (is_character_opener(pattern[p])) {
+        if (is_negating(pattern.substr(p, 2))) {
+          const auto offset = p + 2;
+          const auto end = pattern.find(']', offset);
+          const auto characters = pattern.substr(offset, end - offset);
           auto not_found = std::any_of(
             input_line.begin(), input_line.end(),
             [&characters](const unsigned char c) {
@@ -92,8 +112,9 @@ bool match_pattern(
             i += input_line.size() - i;
           }
         } else {
-          const auto end = pattern.find(']', p + 1);
-          const auto characters = pattern.substr(p + 1, end - (p + 1));
+          const auto offset = p + 1;
+          const auto end = pattern.find(']', offset);
+          const auto characters = pattern.substr(offset, end - offset);
           auto found = std::any_of(
             characters.begin(), characters.end(),
             [&input_line, i](const unsigned char c) {
