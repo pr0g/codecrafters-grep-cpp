@@ -509,22 +509,16 @@ bool matcher(
     if (pattern_pos < pattern.size() - 1) {
       if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
         return matcher(input, input_pos + 1, pattern, pattern_pos);
-      } else {
-        return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
       }
-    } else {
-      return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
     }
+    return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
   } else {
     if (pattern_pos < pattern.size() - 1) {
       if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
         return matcher(input, input_pos, pattern, pattern_pos + 2);
-      } else {
-        return matcher(input, input_pos + 1, pattern, pattern_pos);
       }
-    } else {
-      return matcher(input, input_pos + 1, pattern, pattern_pos);
     }
+    return matcher(input, input_pos + 1, pattern, pattern_pos);
   }
 }
 
