@@ -6,6 +6,11 @@
 #include <variant>
 #include <vector>
 
+template<class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+
 bool is_literal(const char c) {
   // todo - more regex meta characters to add
   return c != '\\' && c != '[';
@@ -84,35 +89,82 @@ std::tuple<int, int> literal_check(
   }
 }
 
+enum class quantifier_e { one_or_more, zero_or_more };
+
 struct literal_t {
+  std::optional<quantifier_e> quantifier;
   char l;
 };
 
-struct digit_t {};
+struct digit_t {
+  std::optional<quantifier_e> quantifier;
+};
 
-struct word_t {};
+struct word_t {
+  std::optional<quantifier_e> quantifier;
+};
 
 // todo - fix me (remove - handle as literal)
 struct backslash_t {};
 
 struct positive_character_group_t {
   std::string group;
+  std::optional<quantifier_e> quantifier;
 };
 
 struct negative_character_group_t {
   std::string group;
+  std::optional<quantifier_e> quantifier;
 };
 
 struct begin_anchor_t {};
 
 struct end_anchor_t {};
 
-struct one_or_more_t {};
+// struct one_or_more_t {};
 
 using pattern_token_t = std::variant<
   literal_t, digit_t, word_t, positive_character_group_t,
-  negative_character_group_t, begin_anchor_t, end_anchor_t, backslash_t,
-  one_or_more_t>;
+  negative_character_group_t, begin_anchor_t, end_anchor_t, backslash_t>;
+
+void set_quantifier(pattern_token_t pattern_token, quantifier_e quantifier) {
+  std::visit(
+    overloaded{
+      [&](literal_t& literal) { literal.quantifier = quantifier; },
+      [&](digit_t& digit) { digit.quantifier = quantifier; },
+      [&](word_t& word) { word.quantifier = quantifier; },
+      [&](negative_character_group_t& negative_character_group) {
+        negative_character_group.quantifier = quantifier;
+      },
+      [&](positive_character_group_t& positive_character_group) {
+        positive_character_group.quantifier = quantifier;
+      },
+      [&](begin_anchor_t& begin_anchor) {}, [&](end_anchor_t& end_anchor) {},
+      [&](backslash_t& backslash) {}},
+    pattern_token);
+}
+
+bool has_quantifier(const pattern_token_t& pattern_token) {
+  bool quantifier = false;
+  std::visit(
+    overloaded{
+      [&](const literal_t& literal) {
+        quantifier = literal.quantifier.has_value();
+      },
+      [&](const digit_t& digit) { quantifier = digit.quantifier.has_value(); },
+      [&](const word_t& word) { quantifier = word.quantifier.has_value(); },
+      [&](const negative_character_group_t& negative_character_group) {
+        quantifier = negative_character_group.quantifier.has_value();
+      },
+      [&](const positive_character_group_t& positive_character_group) {
+        quantifier = positive_character_group.quantifier.has_value();
+      },
+      [&](const begin_anchor_t& begin_anchor) {},
+      [&](const end_anchor_t& end_anchor) {},
+      [&](const backslash_t& backslash) {}},
+    pattern_token);
+  return quantifier;
+}
 
 std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
   std::vector<pattern_token_t> pattern_tokens;
@@ -125,7 +177,9 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
        p < (anchored_end ? pattern.size() - 1 : pattern.size());) {
     if (is_literal(pattern[p])) {
       if (pattern[p] == '+') {
-        pattern_tokens.push_back(one_or_more_t{});
+        auto& previous_pattern = pattern_tokens.back();
+        set_quantifier(previous_pattern, quantifier_e::one_or_more);
+        // pattern_tokens.push_back(one_or_more_t{});
         p++;
       } else {
         pattern_tokens.push_back(literal_t{.l = pattern[p++]});
@@ -166,12 +220,6 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
   }
   return pattern_tokens;
 }
-
-// helper type for the visitor #4
-template<class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
-};
 
 std::tuple<int, int> match(
   pattern_token_t pattern_token, int i, std::string_view input_line, int p,
@@ -242,48 +290,6 @@ std::tuple<int, int> match(
       [&](const backslash_t& backslash) {
         i++;
         p++;
-      },
-      [&](const one_or_more_t& one_or_more) {
-        if (p - 1 >= 0) {
-          auto before = pattern_tokens[p - 1];
-          int i_before;
-          int i_after = i;
-          int ignored_p;
-          int more = 0;
-          do {
-            i_before = i_after;
-            std::tie(i_after, ignored_p) = match(
-              before, i_after, input_line, p, pattern_tokens,
-              anchored_beginning);
-            if (i_after == i_before + 1) {
-              more++;
-            }
-          } while (i_after > i_before && i_after < input_line.size());
-          p++;
-          i += more;
-          int pp = p;
-          while (pp < pattern_tokens.size()
-                 && pattern_tokens[pp].index() == before.index()) {
-            auto* b = std::get_if<literal_t>(&before);
-            auto* n = std::get_if<literal_t>(&pattern_tokens[pp]);
-            if (b != nullptr && n != nullptr) {
-              if (b->l == n->l) {
-                i--;
-                pp++;
-              } else {
-                break;
-              }
-            } else if (b == nullptr && n == nullptr) {
-              i--;
-              pp++;
-            }
-          }
-          int check;
-          check = 0;
-        }
-        // todo
-        // while input can recursively only match previous pattern, continue
-        // when fails, continue processing rest of pattern
       }},
     pattern_token);
   return {i, p};
@@ -399,124 +405,70 @@ auto head_tail(std::string_view s) {
     s.front(), s.substr(1));
 }
 
-// enum class match_e { match_advance, match_hold, clash_advance, clash_abort };
-
-// match_e do_match(pattern_token_t pattern_token, char c) {
-//   match_e match = match_e::clash_abort;
-//   std::visit(
-//     overloaded{
-//       [&](const literal_t& l) {
-//         match = l.l == c ? match_e::match_advance : match_e::clash_abort;
-//       },
-//       [&](const digit_t& digit) {
-//         match = std::isdigit(c) ? match_e::match_advance :
-//         match_e::clash_abort;
-//         ;
-//       },
-//       [&](const word_t& word) {
-//         match = std::isalnum(c) || c == '_' ? match_e::match_advance
-//                                             : match_e::clash_abort;
-//       },
-//       [&](const negative_character_group_t& negative_character_group) {
-//         match = negative_character_group.group.find(c) == std::string::npos
-//                 ? match_e::match_hold
-//                 : match_e::clash_advance;
-//       },
-//       [&](const positive_character_group_t& positive_character_group) {
-//         match = positive_character_group.group.find(c) != std::string::npos
-//                 ? match_e::match_hold
-//                 : match_e::clash_advance;
-//       },
-//       [&](const begin_anchor_t& begin_anchor) {},
-//       [&](const end_anchor_t& end_anchor) {},
-//       [&](const backslash_t& backslash) {},
-//       [&](const one_or_more_t& one_or_more) {}},
-//     pattern_token);
-//   return match;
-// }
-
-std::optional<int> do_match(
+bool do_match(
   std::span<pattern_token_t> pattern,
-  std::span<pattern_token_t>::size_type pattern_pos, char c) {
-  std::optional<int> offset;
+  std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
+  std::string_view::size_type input_pos) {
+  bool match = false;
+  const char c = input[input_pos];
   std::visit(
     overloaded{
       [&](const literal_t& l) {
         if (l.l == c) {
-          offset = 1;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
       },
       [&](const digit_t& digit) {
         if (std::isdigit(c)) {
-          offset = 1;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
       },
       [&](const word_t& word) {
         if (std::isalnum(c) || c == '_') {
-          offset = 1;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
       },
       [&](const negative_character_group_t& negative_character_group) {
         if (int position = negative_character_group.group.find(c);
             position == std::string::npos) {
-          offset = 1;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
       },
       [&](const positive_character_group_t& positive_character_group) {
         if (int position = positive_character_group.group.find(c);
             position != std::string::npos) {
-          offset = position;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
       },
       [&](const begin_anchor_t& begin_anchor) {},
       [&](const end_anchor_t& end_anchor) {},
       [&](const backslash_t& backslash) {
         if (c == '\\') {
-          offset = 1;
-        } else {
-          offset = std::nullopt;
+          match = true;
         }
-      },
-      [&](const one_or_more_t& one_or_more) {
-        // noop - skipped
       }},
     pattern[pattern_pos]);
-  return offset;
+  return match;
 }
 
 bool matcher(
   std::string_view input, std::string_view::size_type input_pos,
   std::span<pattern_token_t> pattern,
   std::span<pattern_token_t>::size_type pattern_pos) {
-  if (input_pos == input.size() && pattern_pos == pattern.size()) {
+  if (pattern_pos == pattern.size()) {
     return true;
   }
-  if (input_pos == input.size() || pattern_pos == pattern.size()) {
+  if (input_pos == input.size()) {
     return false;
   }
-  auto match = do_match(pattern, pattern_pos, input[input_pos]);
-  if (match.has_value()) {
-    if (pattern_pos < pattern.size() - 1) {
-      if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
-        return matcher(input, input_pos + 1, pattern, pattern_pos);
-      }
+  if (do_match(pattern, pattern_pos, input, input_pos)) {
+    if (has_quantifier(pattern[pattern_pos])) {
+      return matcher(input, input_pos + 1, pattern, pattern_pos);
     }
     return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
   } else {
-    if (pattern_pos < pattern.size() - 1) {
-      if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
-        return matcher(input, input_pos, pattern, pattern_pos + 2);
-      }
+    if (has_quantifier(pattern[pattern_pos])) {
+      return matcher(input, input_pos, pattern, pattern_pos + 1);
     }
     return matcher(input, input_pos + 1, pattern, pattern_pos);
   }
@@ -528,14 +480,20 @@ int main(int argc, char* argv[]) {
   std::cerr << std::unitbuf;
 
   {
-    // auto p = parse_pattern(std::string("[^hell]o"));
-    auto p = parse_pattern(std::string("[^opq]q\\\\"));
+    // auto p = parse_pattern(std::string("[^opq]q\\\\"));
     // auto p = parse_pattern(std::string("x[abc]+y"));
-    // auto p = parse_pattern(std::string("a\\d+"));
+    auto p = parse_pattern(std::string("a\\d+"));
+    // auto p = parse_pattern(std::string("^abc"));
+    // auto p = parse_pattern(std::string("^[jmav]+"));
+    // auto p = parse_pattern(std::string("this$"));
+
     bool test = false;
-    // auto input = std::string("123");
-    auto input = std::string("orangeq\\");
+    // auto input = std::string("orangeq\\");
     // auto input = std::string("aaaxbbbacy");
+    auto input = std::string("a123");
+    // auto input = std::string("thisisabc");
+    // auto input = std::string("thisisajvm");
+    // auto input = std::string("thisisnotthis");
     // for (int i = 0; i < input.size(); i++) {
     // move starting position forward
     test = matcher(input, 0, p, 0);
