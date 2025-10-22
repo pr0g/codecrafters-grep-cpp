@@ -140,7 +140,7 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
           p += 2;
         } else if (pattern[p + 1] == '\\') {
           pattern_tokens.push_back(backslash_t{});
-          p++;
+          p += 2;
         }
       } else if (is_character_opener(pattern[p])) {
         if (is_negating(pattern.substr(p, 2))) {
@@ -261,6 +261,25 @@ std::tuple<int, int> match(
           } while (i_after > i_before && i_after < input_line.size());
           p++;
           i += more;
+          int pp = p;
+          while (pp < pattern_tokens.size()
+                 && pattern_tokens[pp].index() == before.index()) {
+            auto* b = std::get_if<literal_t>(&before);
+            auto* n = std::get_if<literal_t>(&pattern_tokens[pp]);
+            if (b != nullptr && n != nullptr) {
+              if (b->l == n->l) {
+                i--;
+                pp++;
+              } else {
+                break;
+              }
+            } else if (b == nullptr && n == nullptr) {
+              i--;
+              pp++;
+            }
+          }
+          int check;
+          check = 0;
         }
         // todo
         // while input can recursively only match previous pattern, continue
@@ -270,7 +289,6 @@ std::tuple<int, int> match(
   return {i, p};
 }
 
-// todo...
 bool match_pattern_2(
   const std::string_view input_line,
   const std::span<pattern_token_t> pattern_tokens) {
@@ -360,10 +378,179 @@ bool match_pattern(
   }
 }
 
+std::optional<std::string_view::size_type> match_literal(
+  literal_t literal, std::string_view input,
+  std::string_view::size_type input_pos) {
+  if (input[input_pos] == literal.l) {
+    return input_pos + 1;
+  }
+  return std::nullopt;
+}
+
+template<typename Range>
+auto head_tail(Range&& r) {
+  std::span s{r};
+  return std::tuple<decltype(s.front()), decltype(s.subspan(1))>(
+    s.front(), s.subspan(1));
+}
+
+auto head_tail(std::string_view s) {
+  return std::pair<decltype(s.front()), decltype(s.substr(1))>(
+    s.front(), s.substr(1));
+}
+
+// enum class match_e { match_advance, match_hold, clash_advance, clash_abort };
+
+// match_e do_match(pattern_token_t pattern_token, char c) {
+//   match_e match = match_e::clash_abort;
+//   std::visit(
+//     overloaded{
+//       [&](const literal_t& l) {
+//         match = l.l == c ? match_e::match_advance : match_e::clash_abort;
+//       },
+//       [&](const digit_t& digit) {
+//         match = std::isdigit(c) ? match_e::match_advance :
+//         match_e::clash_abort;
+//         ;
+//       },
+//       [&](const word_t& word) {
+//         match = std::isalnum(c) || c == '_' ? match_e::match_advance
+//                                             : match_e::clash_abort;
+//       },
+//       [&](const negative_character_group_t& negative_character_group) {
+//         match = negative_character_group.group.find(c) == std::string::npos
+//                 ? match_e::match_hold
+//                 : match_e::clash_advance;
+//       },
+//       [&](const positive_character_group_t& positive_character_group) {
+//         match = positive_character_group.group.find(c) != std::string::npos
+//                 ? match_e::match_hold
+//                 : match_e::clash_advance;
+//       },
+//       [&](const begin_anchor_t& begin_anchor) {},
+//       [&](const end_anchor_t& end_anchor) {},
+//       [&](const backslash_t& backslash) {},
+//       [&](const one_or_more_t& one_or_more) {}},
+//     pattern_token);
+//   return match;
+// }
+
+std::optional<int> do_match(
+  std::span<pattern_token_t> pattern,
+  std::span<pattern_token_t>::size_type pattern_pos, char c) {
+  std::optional<int> offset;
+  std::visit(
+    overloaded{
+      [&](const literal_t& l) {
+        if (l.l == c) {
+          offset = 1;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const digit_t& digit) {
+        if (std::isdigit(c)) {
+          offset = 1;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const word_t& word) {
+        if (std::isalnum(c) || c == '_') {
+          offset = 1;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const negative_character_group_t& negative_character_group) {
+        if (int position = negative_character_group.group.find(c);
+            position == std::string::npos) {
+          offset = 1;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const positive_character_group_t& positive_character_group) {
+        if (int position = positive_character_group.group.find(c);
+            position != std::string::npos) {
+          offset = position;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const begin_anchor_t& begin_anchor) {},
+      [&](const end_anchor_t& end_anchor) {},
+      [&](const backslash_t& backslash) {
+        if (c == '\\') {
+          offset = 1;
+        } else {
+          offset = std::nullopt;
+        }
+      },
+      [&](const one_or_more_t& one_or_more) {
+        // noop - skipped
+      }},
+    pattern[pattern_pos]);
+  return offset;
+}
+
+bool matcher(
+  std::string_view input, std::string_view::size_type input_pos,
+  std::span<pattern_token_t> pattern,
+  std::span<pattern_token_t>::size_type pattern_pos) {
+  if (input_pos == input.size() && pattern_pos == pattern.size()) {
+    return true;
+  }
+  if (input_pos == input.size() || pattern_pos == pattern.size()) {
+    return false;
+  }
+  auto match = do_match(pattern, pattern_pos, input[input_pos]);
+  if (match.has_value()) {
+    if (pattern_pos < pattern.size() - 1) {
+      if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
+        return matcher(input, input_pos + 1, pattern, pattern_pos);
+      } else {
+        return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
+      }
+    } else {
+      return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
+    }
+  } else {
+    if (pattern_pos < pattern.size() - 1) {
+      if (std::holds_alternative<one_or_more_t>(pattern[pattern_pos + 1])) {
+        return matcher(input, input_pos, pattern, pattern_pos + 2);
+      } else {
+        return matcher(input, input_pos + 1, pattern, pattern_pos);
+      }
+    } else {
+      return matcher(input, input_pos + 1, pattern, pattern_pos);
+    }
+  }
+}
+
 int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  {
+    // auto p = parse_pattern(std::string("[^hell]o"));
+    auto p = parse_pattern(std::string("[^opq]q\\\\"));
+    // auto p = parse_pattern(std::string("x[abc]+y"));
+    // auto p = parse_pattern(std::string("a\\d+"));
+    bool test = false;
+    // auto input = std::string("123");
+    auto input = std::string("orangeq\\");
+    // auto input = std::string("aaaxbbbacy");
+    // for (int i = 0; i < input.size(); i++) {
+    // move starting position forward
+    test = matcher(input, 0, p, 0);
+    // if (test) {
+    // break;
+    // }
+    // }
+    std::println("{}", test);
+  }
 
   auto r1 = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
   auto r2 =
@@ -384,17 +571,21 @@ int main(int argc, char* argv[]) {
   auto t6 = parse_pattern(std::string("\\w\\w\\w$"));
   auto t7 = parse_pattern(std::string("^strawberry$"));
   auto t8 = parse_pattern(std::string("\\d+"));
-  auto t9 = parse_pattern(std::string("ca+ts"));
+  auto t9 = parse_pattern(std::string("ca+aaars"));
 
-  auto rr1 = match_pattern_2(std::string("4 cats"), t1);
-  auto rr2 = match_pattern_2(std::string("sally has 1 orange"), t2);
-  auto rr3 = match_pattern_2(std::string("orange"), t3);
-  auto rr4 = match_pattern_2(std::string("e"), t4);
-  auto rr5 = match_pattern_2(std::string("sally has 12 apples"), t5);
-  auto rr6 = match_pattern_2(std::string("abc123cde"), t6);
-  auto rr7 = match_pattern_2(std::string("strawberry_strawberry"), t7);
-  // auto rr8 = match_pattern_2(std::string("123"), t8);
-  auto rr9 = match_pattern_2(std::string("caaaaats"), t9);
+  auto rr1 = /* match_pattern_2 */ matcher(std::string("4 cats"), 0, t1, 0);
+  auto rr2 =
+    /* match_pattern_2 */ matcher(std::string("sally has 1 orange"), 0, t2, 0);
+  auto rr3 = /* match_pattern_2 */ matcher(std::string("orange"), 0, t3, 0);
+  auto rr4 = /* match_pattern_2 */ matcher(std::string("e"), 0, t4, 0);
+  auto rr5 =
+    /* match_pattern_2 */ matcher(std::string("sally has 12 apples"), 0, t5, 0);
+  auto rr6 = /* match_pattern_2 */ matcher(std::string("abc123cde"), 0, t6, 0);
+  auto rr7 =
+    /* match_pattern_2 */ matcher(
+      std::string("strawberry_strawberry"), 0, t7, 0);
+  auto rr8 = /* match_pattern_2 */ matcher(std::string("123"), 0, t8, 0);
+  auto rr9 = /* match_pattern_2 */ matcher(std::string("caaars"), 0, t9, 0);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
