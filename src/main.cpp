@@ -173,14 +173,15 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
   if (anchored_beginning) {
     pattern_tokens.push_back(begin_anchor_t{});
   }
-  bool anchored_end = anchored_at_end(pattern.substr(pattern.size() - 2, 2));
+  bool anchored_end = pattern.size() >= 2
+                      ? anchored_at_end(pattern.substr(pattern.size() - 2, 2))
+                      : false;
   for (int p = anchored_beginning ? 1 : 0;
        p < (anchored_end ? pattern.size() - 1 : pattern.size());) {
     if (is_literal(pattern[p])) {
       if (pattern[p] == '+') {
         auto& previous_pattern = pattern_tokens.back();
         set_quantifier(previous_pattern, quantifier_e::one_or_more);
-        // pattern_tokens.push_back(one_or_more_t{});
         p++;
       } else {
         pattern_tokens.push_back(literal_t{.l = pattern[p++]});
@@ -515,7 +516,8 @@ int main(int argc, char* argv[]) {
     // auto p = parse_pattern(std::string("^abc"));
     // auto p = parse_pattern(std::string("^[jmav]+"));
     // auto p = parse_pattern(std::string("this$"));
-    auto p = parse_pattern(std::string("ca+aars"));
+    // auto p = parse_pattern(std::string("ca+aars"));
+    auto p = parse_pattern(std::string("d"));
 
     bool test = false;
     // auto input = std::string("orangeq\\");
@@ -525,7 +527,8 @@ int main(int argc, char* argv[]) {
     // auto input = std::string("thisisabc");
     // auto input = std::string("thisisajvm");
     // auto input = std::string("thisisnotthis");
-    auto input = std::string("caaars");
+    // auto input = std::string("caaars");
+    auto input = std::string("dog");
     // for (int i = 0; i < input.size(); i++) {
     // move starting position forward
     test = matcher(input, p);
