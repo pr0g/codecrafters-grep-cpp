@@ -483,7 +483,7 @@ bool matcher_internal(
       return matcher_internal(
         input, input_pos + 1, pattern, pattern_pos, anchors);
     } else {
-      return false;
+      return input_pos != 0;
     }
   }
 }
@@ -513,24 +513,26 @@ int main(int argc, char* argv[]) {
     // auto p = parse_pattern(std::string("a\\d+"));
     // auto p = parse_pattern(std::string("a[123]+123"));
     // auto p = parse_pattern(std::string("a123$"));
-    // auto p = parse_pattern(std::string("^abc"));
+    auto p = parse_pattern(std::string("^abc"));
     // auto p = parse_pattern(std::string("^[jmav]+"));
     // auto p = parse_pattern(std::string("this$"));
     // auto p = parse_pattern(std::string("ca+aars"));
     // auto p = parse_pattern(std::string("d"));
-    auto p = parse_pattern(std::string("^strawberry$"));
+    // auto p = parse_pattern(std::string("^strawberry$"));
+    // auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
 
     bool test = false;
     // auto input = std::string("orangeq\\");
     // auto input = std::string("aaaxbbbacy");
     // auto input = std::string("helloa123");
     // auto input = std::string("a123123123123");
-    // auto input = std::string("thisisabc");
+    auto input = std::string("abcthisisabc");
     // auto input = std::string("thisisajvm");
     // auto input = std::string("thisisnotthis");
     // auto input = std::string("caaars");
     // auto input = std::string("dog");
-    auto input = std::string("strawberry");
+    // auto input = std::string("strawberry");
+    // auto input = std::string("abc_123_xyz");
     // for (int i = 0; i < input.size(); i++) {
     // move starting position forward
     test = matcher(input, p);
