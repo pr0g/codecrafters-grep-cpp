@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <ranges>
 #include <span>
 #include <string>
 #include <variant>
@@ -451,27 +452,53 @@ bool do_match(
   return match;
 }
 
-bool matcher(
+struct anchor_e {
+  enum { begin = 1 << 0, end = 1 << 1 };
+};
+
+bool matcher_internal(
   std::string_view input, std::string_view::size_type input_pos,
   std::span<pattern_token_t> pattern,
-  std::span<pattern_token_t>::size_type pattern_pos) {
+  std::span<pattern_token_t>::size_type pattern_pos, int anchors) {
   if (pattern_pos == pattern.size()) {
-    return true;
+    return (anchors & anchor_e::end) != 0 ? input_pos == input.size() : true;
   }
   if (input_pos == input.size()) {
     return false;
   }
   if (do_match(pattern, pattern_pos, input, input_pos)) {
     if (has_quantifier(pattern[pattern_pos])) {
-      return matcher(input, input_pos + 1, pattern, pattern_pos);
+      return matcher_internal(
+        input, input_pos + 1, pattern, pattern_pos, anchors);
     }
-    return matcher(input, input_pos + 1, pattern, pattern_pos + 1);
+    return matcher_internal(
+      input, input_pos + 1, pattern, pattern_pos + 1, anchors);
   } else {
     if (has_quantifier(pattern[pattern_pos])) {
-      return matcher(input, input_pos, pattern, pattern_pos + 1);
+      return matcher_internal(
+        input, input_pos, pattern, pattern_pos + 1, anchors);
     }
-    return matcher(input, input_pos + 1, pattern, pattern_pos);
+    if ((anchors & anchor_e::begin) != 1) {
+      return matcher_internal(
+        input, input_pos + 1, pattern, pattern_pos, anchors);
+    } else {
+      return false;
+    }
   }
+}
+
+bool matcher(std::string_view input, std::span<pattern_token_t> pattern) {
+  int anchors = 0;
+  auto p = pattern;
+  if (std::holds_alternative<begin_anchor_t>(pattern.front())) {
+    p = pattern | std::views::drop(1);
+    anchors |= anchor_e::begin;
+  }
+  if (std::holds_alternative<end_anchor_t>(pattern.back())) {
+    p = pattern | std::views::take(p.size() - 1);
+    anchors |= anchor_e::end;
+  }
+  return matcher_internal(input, 0, p, 0, anchors);
 }
 
 int main(int argc, char* argv[]) {
@@ -482,26 +509,31 @@ int main(int argc, char* argv[]) {
   {
     // auto p = parse_pattern(std::string("[^opq]q\\\\"));
     // auto p = parse_pattern(std::string("x[abc]+y"));
-    auto p = parse_pattern(std::string("a\\d+"));
+    // auto p = parse_pattern(std::string("a\\d+"));
+    // auto p = parse_pattern(std::string("a[123]+123"));
+    // auto p = parse_pattern(std::string("a123$"));
     // auto p = parse_pattern(std::string("^abc"));
     // auto p = parse_pattern(std::string("^[jmav]+"));
     // auto p = parse_pattern(std::string("this$"));
+    auto p = parse_pattern(std::string("ca+aars"));
 
     bool test = false;
     // auto input = std::string("orangeq\\");
     // auto input = std::string("aaaxbbbacy");
-    auto input = std::string("a123");
+    // auto input = std::string("helloa123");
+    // auto input = std::string("a123123123123");
     // auto input = std::string("thisisabc");
     // auto input = std::string("thisisajvm");
     // auto input = std::string("thisisnotthis");
+    auto input = std::string("caaars");
     // for (int i = 0; i < input.size(); i++) {
     // move starting position forward
-    test = matcher(input, 0, p, 0);
+    test = matcher(input, p);
     // if (test) {
     // break;
     // }
     // }
-    std::println("{}", test);
+    // std::println("{}", test);
   }
 
   auto r1 = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
@@ -525,19 +557,18 @@ int main(int argc, char* argv[]) {
   auto t8 = parse_pattern(std::string("\\d+"));
   auto t9 = parse_pattern(std::string("ca+aaars"));
 
-  auto rr1 = /* match_pattern_2 */ matcher(std::string("4 cats"), 0, t1, 0);
+  auto rr1 = /* match_pattern_2 */ matcher(std::string("4 cats"), t1);
   auto rr2 =
-    /* match_pattern_2 */ matcher(std::string("sally has 1 orange"), 0, t2, 0);
-  auto rr3 = /* match_pattern_2 */ matcher(std::string("orange"), 0, t3, 0);
-  auto rr4 = /* match_pattern_2 */ matcher(std::string("e"), 0, t4, 0);
+    /* match_pattern_2 */ matcher(std::string("sally has 1 orange"), t2);
+  auto rr3 = /* match_pattern_2 */ matcher(std::string("orange"), t3);
+  auto rr4 = /* match_pattern_2 */ matcher(std::string("e"), t4);
   auto rr5 =
-    /* match_pattern_2 */ matcher(std::string("sally has 12 apples"), 0, t5, 0);
-  auto rr6 = /* match_pattern_2 */ matcher(std::string("abc123cde"), 0, t6, 0);
+    /* match_pattern_2 */ matcher(std::string("sally has 12 apples"), t5);
+  auto rr6 = /* match_pattern_2 */ matcher(std::string("abc123cde"), t6);
   auto rr7 =
-    /* match_pattern_2 */ matcher(
-      std::string("strawberry_strawberry"), 0, t7, 0);
-  auto rr8 = /* match_pattern_2 */ matcher(std::string("123"), 0, t8, 0);
-  auto rr9 = /* match_pattern_2 */ matcher(std::string("caaars"), 0, t9, 0);
+    /* match_pattern_2 */ matcher(std::string("strawberry_strawberry"), t7);
+  auto rr8 = /* match_pattern_2 */ matcher(std::string("123"), t8);
+  auto rr9 = /* match_pattern_2 */ matcher(std::string("caaars"), t9);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -558,7 +589,7 @@ int main(int argc, char* argv[]) {
   try {
     // if (match_pattern(input_line, pattern)) {
     auto parsed_pattern = parse_pattern(pattern);
-    if (match_pattern_2(input_line, parsed_pattern)) {
+    if (matcher(input_line, parsed_pattern)) {
       std::cerr << std::format("0\n");
       return 0;
     } else {
