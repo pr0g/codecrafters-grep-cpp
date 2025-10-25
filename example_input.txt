@@ -1,0 +1,48 @@
+// auto p = parse_pattern(std::string("[^opq]q\\\\"));
+// auto p = parse_pattern(std::string("x[abc]+y"));
+// auto p = parse_pattern(std::string("a\\d+"));
+// auto p = parse_pattern(std::string("a[123]+123"));
+// auto p = parse_pattern(std::string("a123$"));
+// auto p = parse_pattern(std::string("^abc"));
+// auto p = parse_pattern(std::string("^[jmav]+"));
+// auto p = parse_pattern(std::string("this$"));
+// auto p = parse_pattern(std::string("ca+aars"));
+// auto p = parse_pattern(std::string("d"));
+// auto p = parse_pattern(std::string("^strawberry$"));
+// auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
+// auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
+
+// auto input = std::string("orangeq\\");
+// auto input = std::string("aaaxbbbacy");
+// auto input = std::string("helloa123");
+// auto input = std::string("a123123123123");
+// auto input = std::string("abcthisisabc");
+// auto input = std::string("thisisajvm");
+// auto input = std::string("thisisnotthis");
+// auto input = std::string("caaars");
+// auto input = std::string("dog");
+// auto input = std::string("strawberry");
+// auto input = std::string("abc_123_xyz");
+// auto input = std::string("abc_rst_xyz");
+// bool test = matcher(input, p);
+// std::println("{}", test);
+
+auto t1 = parse_pattern(std::string("\\d \\w\\w\\ws"));
+auto t2 = parse_pattern(std::string("\\d apple"));
+auto t3 = parse_pattern(std::string("[^opq]"));
+auto t4 = parse_pattern(std::string("[orange]"));
+auto t5 = parse_pattern(std::string("\\d\\\\d\\\\d apples"));
+auto t6 = parse_pattern(std::string("\\w\\w\\w$"));
+auto t7 = parse_pattern(std::string("^strawberry$"));
+auto t8 = parse_pattern(std::string("\\d+"));
+auto t9 = parse_pattern(std::string("ca+aaars"));
+
+auto rr1 = matcher(std::string("4 cats"), t1);
+auto rr2 = matcher(std::string("sally has 1 orange"), t2);
+auto rr3 = matcher(std::string("orange"), t3);
+auto rr4 = matcher(std::string("e"), t4);
+auto rr5 = matcher(std::string("sally has 12 apples"), t5);
+auto rr6 = matcher(std::string("abc123cde"), t6);
+auto rr7 = matcher(std::string("strawberry_strawberry"), t7);
+auto rr8 = matcher(std::string("123"), t8);
+auto rr9 = matcher(std::string("caaars"), t9);

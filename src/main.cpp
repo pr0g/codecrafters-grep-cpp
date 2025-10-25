@@ -395,18 +395,6 @@ std::optional<std::string_view::size_type> match_literal(
   return std::nullopt;
 }
 
-template<typename Range>
-auto head_tail(Range&& r) {
-  std::span s{r};
-  return std::tuple<decltype(s.front()), decltype(s.subspan(1))>(
-    s.front(), s.subspan(1));
-}
-
-auto head_tail(std::string_view s) {
-  return std::pair<decltype(s.front()), decltype(s.substr(1))>(
-    s.front(), s.substr(1));
-}
-
 bool do_match(
   std::span<pattern_token_t> pattern,
   std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
@@ -509,78 +497,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  {
-    // auto p = parse_pattern(std::string("[^opq]q\\\\"));
-    // auto p = parse_pattern(std::string("x[abc]+y"));
-    // auto p = parse_pattern(std::string("a\\d+"));
-    // auto p = parse_pattern(std::string("a[123]+123"));
-    // auto p = parse_pattern(std::string("a123$"));
-    // auto p = parse_pattern(std::string("^abc"));
-    // auto p = parse_pattern(std::string("^[jmav]+"));
-    // auto p = parse_pattern(std::string("this$"));
-    // auto p = parse_pattern(std::string("ca+aars"));
-    // auto p = parse_pattern(std::string("d"));
-    auto p = parse_pattern(std::string("^strawberry$"));
-    // auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
-    // auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
-
-    bool test = false;
-    // auto input = std::string("orangeq\\");
-    // auto input = std::string("aaaxbbbacy");
-    // auto input = std::string("helloa123");
-    // auto input = std::string("a123123123123");
-    // auto input = std::string("abcthisisabc");
-    // auto input = std::string("thisisajvm");
-    // auto input = std::string("thisisnotthis");
-    // auto input = std::string("caaars");
-    // auto input = std::string("dog");
-    auto input = std::string("strawberry");
-    // auto input = std::string("abc_123_xyz");
-    // auto input = std::string("abc_rst_xyz");
-    // for (int i = 0; i < input.size(); i++) {
-    // move starting position forward
-    test = matcher(input, p);
-    // if (test) {
-    // break;
-    // }
-    // }
-    // std::println("{}", test);
-  }
-
-  auto r1 = match_pattern(std::string("4 cats"), std::string("\\d \\w\\w\\ws"));
-  auto r2 =
-    match_pattern(std::string("sally has 1 orange"), std::string("\\d apple"));
-  auto r3 = match_pattern(std::string("orange"), std::string("[^opq]"));
-  auto r4 = match_pattern(std::string("e"), std::string("[orange]"));
-  auto r5 = match_pattern(
-    std::string("sally has 12 apples"), std::string("\\d\\\\d\\\\d apples"));
-  auto r6 = match_pattern(std::string("abc123cde"), std::string("\\w\\w\\w$"));
-  auto r7 = match_pattern(
-    std::string("strawberry_strawberry"), std::string("^strawberry$"));
-
-  auto t1 = parse_pattern(std::string("\\d \\w\\w\\ws"));
-  auto t2 = parse_pattern(std::string("\\d apple"));
-  auto t3 = parse_pattern(std::string("[^opq]"));
-  auto t4 = parse_pattern(std::string("[orange]"));
-  auto t5 = parse_pattern(std::string("\\d\\\\d\\\\d apples"));
-  auto t6 = parse_pattern(std::string("\\w\\w\\w$"));
-  auto t7 = parse_pattern(std::string("^strawberry$"));
-  auto t8 = parse_pattern(std::string("\\d+"));
-  auto t9 = parse_pattern(std::string("ca+aaars"));
-
-  auto rr1 = /* match_pattern_2 */ matcher(std::string("4 cats"), t1);
-  auto rr2 =
-    /* match_pattern_2 */ matcher(std::string("sally has 1 orange"), t2);
-  auto rr3 = /* match_pattern_2 */ matcher(std::string("orange"), t3);
-  auto rr4 = /* match_pattern_2 */ matcher(std::string("e"), t4);
-  auto rr5 =
-    /* match_pattern_2 */ matcher(std::string("sally has 12 apples"), t5);
-  auto rr6 = /* match_pattern_2 */ matcher(std::string("abc123cde"), t6);
-  auto rr7 =
-    /* match_pattern_2 */ matcher(std::string("strawberry_strawberry"), t7);
-  auto rr8 = /* match_pattern_2 */ matcher(std::string("123"), t8);
-  auto rr9 = /* match_pattern_2 */ matcher(std::string("caaars"), t9);
-
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
@@ -598,9 +514,8 @@ int main(int argc, char* argv[]) {
   std::getline(std::cin, input_line);
 
   try {
-    // if (match_pattern(input_line, pattern)) {
-    auto parsed_pattern = parse_pattern(pattern);
-    if (matcher(input_line, parsed_pattern)) {
+    if (auto parsed_pattern = parse_pattern(pattern);
+        matcher(input_line, parsed_pattern)) {
       std::cerr << std::format("0\n");
       return 0;
     } else {
