@@ -492,11 +492,11 @@ bool matcher(std::string_view input, std::span<pattern_token_t> pattern) {
   int anchors = 0;
   auto p = pattern;
   if (std::holds_alternative<begin_anchor_t>(pattern.front())) {
-    p = pattern | std::views::drop(1);
+    p = p | std::views::drop(1);
     anchors |= anchor_e::begin;
   }
   if (std::holds_alternative<end_anchor_t>(pattern.back())) {
-    p = pattern | std::views::take(p.size() - 1);
+    p = p | std::views::take(p.size() - 1);
     anchors |= anchor_e::end;
   }
   return matcher_internal(input, 0, p, 0, anchors);
@@ -517,7 +517,8 @@ int main(int argc, char* argv[]) {
     // auto p = parse_pattern(std::string("^[jmav]+"));
     // auto p = parse_pattern(std::string("this$"));
     // auto p = parse_pattern(std::string("ca+aars"));
-    auto p = parse_pattern(std::string("d"));
+    // auto p = parse_pattern(std::string("d"));
+    auto p = parse_pattern(std::string("^strawberry$"));
 
     bool test = false;
     // auto input = std::string("orangeq\\");
@@ -528,7 +529,8 @@ int main(int argc, char* argv[]) {
     // auto input = std::string("thisisajvm");
     // auto input = std::string("thisisnotthis");
     // auto input = std::string("caaars");
-    auto input = std::string("dog");
+    // auto input = std::string("dog");
+    auto input = std::string("strawberry");
     // for (int i = 0; i < input.size(); i++) {
     // move starting position forward
     test = matcher(input, p);
