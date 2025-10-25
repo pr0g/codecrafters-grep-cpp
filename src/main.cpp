@@ -185,40 +185,18 @@ bool do_match(
   const char c = input[input_pos];
   std::visit(
     overloaded{
-      [&](const literal_t& l) {
-        if (l.l == c) {
-          match = true;
-        }
-      },
-      [&](const digit_t& digit) {
-        if (std::isdigit(c)) {
-          match = true;
-        }
-      },
-      [&](const word_t& word) {
-        if (std::isalnum(c) || c == '_') {
-          match = true;
-        }
-      },
+      [&](const literal_t& l) { match = l.l == c; },
+      [&](const digit_t& digit) { match = std::isdigit(c); },
+      [&](const word_t& word) { match = std::isalnum(c) || c == '_'; },
       [&](const negative_character_group_t& negative_character_group) {
-        if (int position = negative_character_group.group.find(c);
-            position == std::string::npos) {
-          match = true;
-        }
+        match = negative_character_group.group.find(c) == std::string::npos;
       },
       [&](const positive_character_group_t& positive_character_group) {
-        if (int position = positive_character_group.group.find(c);
-            position != std::string::npos) {
-          match = true;
-        }
+        match = positive_character_group.group.find(c) != std::string::npos;
       },
-      [&](const begin_anchor_t& begin_anchor) {},
-      [&](const end_anchor_t& end_anchor) {},
-      [&](const backslash_t& backslash) {
-        if (c == '\\') {
-          match = true;
-        }
-      }},
+      [&](const begin_anchor_t& begin_anchor) { /* noop */ },
+      [&](const end_anchor_t& end_anchor) { /* noop */ },
+      [&](const backslash_t& backslash) { match = c == '\\'; }},
     pattern[pattern_pos]);
   return match;
 }
