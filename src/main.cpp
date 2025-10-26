@@ -253,6 +253,18 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
+  // auto p = parse_pattern("dogs?");
+  // auto t = matcher("dog", p);
+
+  // auto p = parse_pattern("caaa+t");
+  // auto t = matcher("caaat", p);
+  // auto p = parse_pattern("x[abc]+abcabc");
+  // auto t = matcher("xabcabcabc", p);
+  auto p = parse_pattern("ca?t");
+  auto t = matcher("cat", p);
+
+  // std::println("{}", t);
+
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
