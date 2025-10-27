@@ -62,9 +62,6 @@ struct word_t {
   std::optional<quantifier_e> quantifier;
 };
 
-// todo - fix me (remove - handle as literal)
-struct backslash_t {};
-
 struct positive_character_group_t {
   std::string group;
   std::optional<quantifier_e> quantifier;
@@ -80,7 +77,7 @@ struct end_anchor_t {};
 
 using pattern_token_t = std::variant<
   literal_t, digit_t, word_t, positive_character_group_t,
-  negative_character_group_t, begin_anchor_t, end_anchor_t, backslash_t>;
+  negative_character_group_t, begin_anchor_t, end_anchor_t>;
 
 void set_quantifier(pattern_token_t pattern_token, quantifier_e quantifier) {
   std::visit(
@@ -94,8 +91,7 @@ void set_quantifier(pattern_token_t pattern_token, quantifier_e quantifier) {
       [&](positive_character_group_t& positive_character_group) {
         positive_character_group.quantifier = quantifier;
       },
-      [&](begin_anchor_t& begin_anchor) {}, [&](end_anchor_t& end_anchor) {},
-      [&](backslash_t& backslash) {}},
+      [&](begin_anchor_t& begin_anchor) {}, [&](end_anchor_t& end_anchor) {}},
     pattern_token);
 }
 
@@ -115,8 +111,7 @@ bool has_quantifier(const pattern_token_t& pattern_token) {
         quantifier = positive_character_group.quantifier.has_value();
       },
       [&](const begin_anchor_t& begin_anchor) {},
-      [&](const end_anchor_t& end_anchor) {},
-      [&](const backslash_t& backslash) {}},
+      [&](const end_anchor_t& end_anchor) {}},
     pattern_token);
   return quantifier;
 }
@@ -149,7 +144,7 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
           pattern_tokens.push_back(word_t{});
           p += 2;
         } else if (pattern[p + 1] == '\\') {
-          pattern_tokens.push_back(backslash_t{});
+          pattern_tokens.push_back(literal_t{.l = '\\'});
           p += 2;
         }
       } else if (is_character_opener(pattern[p])) {
@@ -195,8 +190,7 @@ bool do_match(
         match = positive_character_group.group.find(c) != std::string::npos;
       },
       [&](const begin_anchor_t& begin_anchor) { /* noop */ },
-      [&](const end_anchor_t& end_anchor) { /* noop */ },
-      [&](const backslash_t& backslash) { match = c == '\\'; }},
+      [&](const end_anchor_t& end_anchor) { /* noop */ }},
     pattern[pattern_pos]);
   return match;
 }
