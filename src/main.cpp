@@ -79,7 +79,7 @@ using pattern_token_t = std::variant<
   literal_t, digit_t, word_t, positive_character_group_t,
   negative_character_group_t, begin_anchor_t, end_anchor_t>;
 
-void set_quantifier(pattern_token_t pattern_token, quantifier_e quantifier) {
+void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
   std::visit(
     overloaded{
       [&](literal_t& literal) { literal.quantifier = quantifier; },
