@@ -129,8 +129,10 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
        p < (anchored_end ? pattern.size() - 1 : pattern.size());) {
     if (is_literal(pattern[p])) {
       if (pattern[p] == '+') {
-        auto& previous_pattern = pattern_tokens.back();
-        set_quantifier(previous_pattern, quantifier_e::one_or_more);
+        set_quantifier(pattern_tokens.back(), quantifier_e::one_or_more);
+        p++;
+      } else if (pattern[p] == '?') {
+        set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_one);
         p++;
       } else {
         pattern_tokens.push_back(literal_t{.l = pattern[p++]});
@@ -206,11 +208,11 @@ bool matcher_internal(
   if (pattern_pos == pattern.size()) {
     return (anchors & anchor_e::end) != 0 ? input_pos == input.size() : true;
   }
+  const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    return false;
+    return quantifier == quantifier_e::zero_or_one ? true : false;
   }
-  if (const auto quantifier = get_quantifier(pattern[pattern_pos]);
-      do_match(pattern, pattern_pos, input, input_pos)) {
+  if (do_match(pattern, pattern_pos, input, input_pos)) {
     if (quantifier == quantifier_e::one_or_more) {
       // try to match more of the pattern (greedy)
       if (matcher_internal(
@@ -224,6 +226,9 @@ bool matcher_internal(
     if (quantifier == quantifier_e::one_or_more) {
       // no match at current position
       return false;
+    } else if (quantifier == quantifier_e::zero_or_one) {
+      return matcher_internal(
+        input, input_pos, pattern, pattern_pos + 1, anchors);
     }
     if ((anchors & anchor_e::begin) == 0) {
       return matcher_internal(input, input_pos + 1, pattern, 0, anchors);
@@ -251,49 +256,6 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-
-  // auto p = parse_pattern("dogs?");
-  // auto t = matcher("dog", p);
-  // auto p = parse_pattern("colou?r");
-  // auto t = matcher("color", p);
-
-  // auto p = parse_pattern("ca+abt");
-  // auto t = matcher("caabts", p);
-  // auto p = parse_pattern("\\d?");
-  // auto t = matcher("", p);
-  // auto p = parse_pattern("ca?t");
-  // auto t = matcher("cat", p);
-  // auto p = parse_pattern("^pineapple");
-  // auto t = matcher("pear_pineapple", p);
-  // std::println("{}", t);
-
-  // auto p = parse_pattern(std::string("[^opq]q\\\\"));
-  // auto p = parse_pattern(std::string("x[abc]+y"));
-  // auto p = parse_pattern(std::string("a\\d+"));
-  // auto p = parse_pattern(std::string("a[123]+123"));
-  // auto p = parse_pattern(std::string("a123$"));
-  // auto p = parse_pattern(std::string("^abc"));
-  // auto p = parse_pattern(std::string("^[jmav]+"));
-  // auto p = parse_pattern(std::string("this$"));
-  // auto p = parse_pattern(std::string("ca+aars"));
-  // auto p = parse_pattern(std::string("d"));
-  // auto p = parse_pattern(std::string("^strawberry$"));
-  // auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
-
-  // auto input = std::string("orangeq\\");
-  // auto input = std::string("aaaxbbbacy");
-  // auto input = std::string("helloa123");
-  // auto input = std::string("a123123123123");
-  // auto input = std::string("abcthisisabc");
-  // auto input = std::string("thisisajvm");
-  // auto input = std::string("thisisnotthis");
-  // auto input = std::string("caaars");
-  // auto input = std::string("dog");
-  // auto input = std::string("strawberry");
-  // auto input = std::string("abc_123_xyz");
-  // auto input = std::string("abc_rst_xyz");
-  // bool test = matcher(input, p);
-  // std::println("{}", test);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
