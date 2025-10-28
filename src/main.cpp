@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
   // auto p = parse_pattern(std::string("ca+aars"));
   // auto p = parse_pattern(std::string("d"));
   // auto p = parse_pattern(std::string("^strawberry$"));
-  auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
+  // auto p = parse_pattern(std::string("^abc_\\d+_xyz$"));
 
   // auto input = std::string("orangeq\\");
   // auto input = std::string("aaaxbbbacy");
@@ -291,9 +291,9 @@ int main(int argc, char* argv[]) {
   // auto input = std::string("dog");
   // auto input = std::string("strawberry");
   // auto input = std::string("abc_123_xyz");
-  auto input = std::string("abc_rst_xyz");
-  bool test = matcher(input, p);
-  std::println("{}", test);
+  // auto input = std::string("abc_rst_xyz");
+  // bool test = matcher(input, p);
+  // std::println("{}", test);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
