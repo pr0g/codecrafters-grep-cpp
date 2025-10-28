@@ -72,12 +72,16 @@ struct negative_character_group_t {
   std::optional<quantifier_e> quantifier;
 };
 
+struct wildcard_t {
+  std::optional<quantifier_e> quantifier;
+};
+
 struct begin_anchor_t {};
 struct end_anchor_t {};
 
 using pattern_token_t = std::variant<
   literal_t, digit_t, word_t, positive_character_group_t,
-  negative_character_group_t, begin_anchor_t, end_anchor_t>;
+  negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t>;
 
 void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
   std::visit(
@@ -91,8 +95,10 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
       [&](positive_character_group_t& positive_character_group) {
         positive_character_group.quantifier = quantifier;
       },
+      [&](wildcard_t& wildcard) { wildcard.quantifier = quantifier; },
       [&](begin_anchor_t& begin_anchor) { /* noop */ },
-      [&](end_anchor_t& end_anchor) { /* noop */ }},
+      [&](end_anchor_t& end_anchor) { /* noop */ },
+    },
     pattern_token);
 }
 
@@ -110,6 +116,7 @@ std::optional<quantifier_e> get_quantifier(
       [&](const positive_character_group_t& positive_character_group) {
         quantifier = positive_character_group.quantifier;
       },
+      [&](const wildcard_t& wildcard) { quantifier = wildcard.quantifier; },
       [&](const begin_anchor_t& begin_anchor) {},
       [&](const end_anchor_t& end_anchor) {}},
     pattern_token);
@@ -133,6 +140,9 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
         p++;
       } else if (pattern[p] == '?') {
         set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_one);
+        p++;
+      } else if (pattern[p] == '.') {
+        pattern_tokens.push_back(wildcard_t{});
         p++;
       } else {
         pattern_tokens.push_back(literal_t{.l = pattern[p++]});
@@ -191,6 +201,7 @@ bool do_match(
       [&](const positive_character_group_t& positive_character_group) {
         match = positive_character_group.group.find(c) != std::string::npos;
       },
+      [&](const wildcard_t& wildcard) { match = true; },
       [&](const begin_anchor_t& begin_anchor) { /* noop */ },
       [&](const end_anchor_t& end_anchor) { /* noop */ }},
     pattern[pattern_pos]);
