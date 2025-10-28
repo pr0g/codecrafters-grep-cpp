@@ -211,15 +211,18 @@ bool matcher_internal(
   }
   if (do_match(pattern, pattern_pos, input, input_pos)) {
     if (has_quantifier(pattern[pattern_pos])) {
-      return matcher_internal(
-        input, input_pos + 1, pattern, pattern_pos, anchors);
+      // try to match more of the pattern (greedy)
+      if (matcher_internal(
+            input, input_pos + 1, pattern, pattern_pos, anchors)) {
+        return true;
+      }
     }
     return matcher_internal(
       input, input_pos + 1, pattern, pattern_pos + 1, anchors);
   } else {
     if (has_quantifier(pattern[pattern_pos])) {
-      return matcher_internal(
-        input, input_pos, pattern, pattern_pos + 1, anchors);
+      // no match at current position
+      return false;
     }
     if (
       (anchors & anchor_e::begin) == 0
