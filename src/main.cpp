@@ -47,7 +47,7 @@ bool is_word(const char c) {
   return c == 'w';
 }
 
-enum class quantifier_e { one_or_more, zero_or_more };
+enum class quantifier_e { one_or_more, zero_or_one };
 
 struct literal_t {
   std::optional<quantifier_e> quantifier;
@@ -91,24 +91,24 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
       [&](positive_character_group_t& positive_character_group) {
         positive_character_group.quantifier = quantifier;
       },
-      [&](begin_anchor_t& begin_anchor) {}, [&](end_anchor_t& end_anchor) {}},
+      [&](begin_anchor_t& begin_anchor) { /* noop */ },
+      [&](end_anchor_t& end_anchor) { /* noop */ }},
     pattern_token);
 }
 
-bool has_quantifier(const pattern_token_t& pattern_token) {
-  bool quantifier = false;
+std::optional<quantifier_e> get_quantifier(
+  const pattern_token_t& pattern_token) {
+  std::optional<quantifier_e> quantifier;
   std::visit(
     overloaded{
-      [&](const literal_t& literal) {
-        quantifier = literal.quantifier.has_value();
-      },
-      [&](const digit_t& digit) { quantifier = digit.quantifier.has_value(); },
-      [&](const word_t& word) { quantifier = word.quantifier.has_value(); },
+      [&](const literal_t& literal) { quantifier = literal.quantifier; },
+      [&](const digit_t& digit) { quantifier = digit.quantifier; },
+      [&](const word_t& word) { quantifier = word.quantifier; },
       [&](const negative_character_group_t& negative_character_group) {
-        quantifier = negative_character_group.quantifier.has_value();
+        quantifier = negative_character_group.quantifier;
       },
       [&](const positive_character_group_t& positive_character_group) {
-        quantifier = positive_character_group.quantifier.has_value();
+        quantifier = positive_character_group.quantifier;
       },
       [&](const begin_anchor_t& begin_anchor) {},
       [&](const end_anchor_t& end_anchor) {}},
@@ -209,8 +209,9 @@ bool matcher_internal(
   if (input_pos == input.size()) {
     return false;
   }
+  const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (do_match(pattern, pattern_pos, input, input_pos)) {
-    if (has_quantifier(pattern[pattern_pos])) {
+    if (quantifier == quantifier_e::one_or_more) {
       // try to match more of the pattern (greedy)
       if (matcher_internal(
             input, input_pos + 1, pattern, pattern_pos, anchors)) {
@@ -220,7 +221,7 @@ bool matcher_internal(
     return matcher_internal(
       input, input_pos + 1, pattern, pattern_pos + 1, anchors);
   } else {
-    if (has_quantifier(pattern[pattern_pos])) {
+    if (quantifier == quantifier_e::one_or_more) {
       // no match at current position
       return false;
     }
@@ -256,13 +257,15 @@ int main(int argc, char* argv[]) {
   // auto p = parse_pattern("dogs?");
   // auto t = matcher("dog", p);
 
-  // auto p = parse_pattern("caaa+t");
-  // auto t = matcher("caaat", p);
-  // auto p = parse_pattern("x[abc]+abcabc");
-  // auto t = matcher("xabcabcabc", p);
+  // auto p = parse_pattern("ca+abt");
+  // auto t = matcher("caabts", p);
+
+  // auto p = parse_pattern("colou?r");
+  // auto t = matcher("color", p);
+  //  auto p = parse_pattern("\\d?");
+  //  auto t = matcher("", p);
   auto p = parse_pattern("ca?t");
   auto t = matcher("cat", p);
-
   // std::println("{}", t);
 
   if (argc != 3) {
