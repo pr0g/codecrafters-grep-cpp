@@ -224,8 +224,7 @@ bool matcher_internal(
     if (
       (anchors & anchor_e::begin) == 0
       || (anchors & anchor_e::begin) == 1 && input_pos != 0) {
-      return matcher_internal(
-        input, input_pos + 1, pattern, pattern_pos, anchors);
+      return matcher_internal(input, input_pos + 1, pattern, 0, anchors);
     } else {
       return false;
     }
