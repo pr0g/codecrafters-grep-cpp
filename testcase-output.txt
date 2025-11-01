@@ -1,0 +1,191 @@
+remote: [tester::#ZM7] Running tests for Stage #ZM7 (Alternation)
+remote: [tester::#ZM7] $ echo -n 'a cat' | ./your_program.sh -E 'a (cat|dog)'
+remote: [your_program] 0
+remote: [tester::#ZM7] ✓ Received exit code 0.
+remote: [tester::#ZM7] $ echo -n 'a cog' | ./your_program.sh -E 'a (cat|dog)'
+remote: [your_program] 1
+remote: [tester::#ZM7] ✓ Received exit code 1.
+remote: [tester::#ZM7] $ echo -n 'I see 1 cat' | ./your_program.sh -E '^I see \d+ (cat|dog)s?$'
+remote: [your_program] 0
+remote: [tester::#ZM7] ✓ Received exit code 0.
+remote: [tester::#ZM7] $ echo -n 'I see 42 dogs' | ./your_program.sh -E '^I see \d+ (cat|dog)s?$'
+remote: [your_program] 0
+remote: [tester::#ZM7] ✓ Received exit code 0.
+remote: [tester::#ZM7] $ echo -n 'I see a cat' | ./your_program.sh -E '^I see \d+ (cat|dog)s?$'
+remote: [your_program] 1
+remote: [tester::#ZM7] ✓ Received exit code 1.
+remote: [tester::#ZM7] $ echo -n 'I see 2 dog3' | ./your_program.sh -E '^I see \d+ (cat|dog)s?$'
+remote: [your_program] 1
+remote: [tester::#ZM7] ✓ Received exit code 1.
+remote: [tester::#ZM7] Test passed.
+remote:
+remote: [tester::#ZB3] Running tests for Stage #ZB3 (Wildcard)
+remote: [tester::#ZB3] $ echo -n 'cat' | ./your_program.sh -E 'c.t'
+remote: [your_program] 0
+remote: [tester::#ZB3] ✓ Received exit code 0.
+remote: [tester::#ZB3] $ echo -n 'car' | ./your_program.sh -E 'c.t'
+remote: [your_program] 1
+remote: [tester::#ZB3] ✓ Received exit code 1.
+remote: [tester::#ZB3] $ echo -n 'goøö0Ogol' | ./your_program.sh -E 'g.+gol'
+remote: [your_program] 0
+remote: [tester::#ZB3] ✓ Received exit code 0.
+remote: [tester::#ZB3] $ echo -n 'gol' | ./your_program.sh -E 'g.+gol'
+remote: [your_program] 1
+remote: [tester::#ZB3] ✓ Received exit code 1.
+remote: [tester::#ZB3] Test passed.
+remote:
+remote: [tester::#NY8] Running tests for Stage #NY8 (Match zero or one times)
+remote: [tester::#NY8] $ echo -n 'cat' | ./your_program.sh -E 'ca?t'
+remote: [your_program] 0
+remote: [tester::#NY8] ✓ Received exit code 0.
+remote: [tester::#NY8] $ echo -n 'act' | ./your_program.sh -E 'ca?t'
+remote: [your_program] 0
+remote: [tester::#NY8] ✓ Received exit code 0.
+remote: [tester::#NY8] $ echo -n 'cat' | ./your_program.sh -E 'ca?a?t'
+remote: [your_program] 0
+remote: [tester::#NY8] ✓ Received exit code 0.
+remote: [tester::#NY8] $ echo -n 'dog' | ./your_program.sh -E 'ca?t'
+remote: [your_program] 1
+remote: [tester::#NY8] ✓ Received exit code 1.
+remote: [tester::#NY8] $ echo -n 'cag' | ./your_program.sh -E 'ca?t'
+remote: [your_program] 1
+remote: [tester::#NY8] ✓ Received exit code 1.
+remote: [tester::#NY8] Test passed.
+remote:
+remote: [tester::#FZ7] Running tests for Stage #FZ7 (Match one or more times)
+remote: [tester::#FZ7] $ echo -n 'cat' | ./your_program.sh -E 'ca+t'
+remote: [your_program] 0
+remote: [tester::#FZ7] ✓ Received exit code 0.
+remote: [tester::#FZ7] $ echo -n 'caaats' | ./your_program.sh -E 'ca+at'
+remote: [your_program] 0
+remote: [tester::#FZ7] ✓ Received exit code 0.
+remote: [tester::#FZ7] $ echo -n 'act' | ./your_program.sh -E 'ca+t'
+remote: [your_program] 1
+remote: [tester::#FZ7] ✓ Received exit code 1.
+remote: [tester::#FZ7] $ echo -n 'ca' | ./your_program.sh -E 'ca+t'
+remote: [your_program] 1
+remote: [tester::#FZ7] ✓ Received exit code 1.
+remote: [tester::#FZ7] $ echo -n 'abc_123_xyz' | ./your_program.sh -E '^abc_\d+_xyz$'
+remote: [your_program] 0
+remote: [tester::#FZ7] ✓ Received exit code 0.
+remote: [tester::#FZ7] $ echo -n 'abc_rst_xyz' | ./your_program.sh -E '^abc_\d+_xyz$'
+remote: [your_program] 1
+remote: [tester::#FZ7] ✓ Received exit code 1.
+remote: [tester::#FZ7] Test passed.
+remote:
+remote: [tester::#AO7] Running tests for Stage #AO7 (End of string anchor)
+remote: [tester::#AO7] $ echo -n 'pineapple_pear' | ./your_program.sh -E 'pear$'
+remote: [your_program] 0
+remote: [tester::#AO7] ✓ Received exit code 0.
+remote: [tester::#AO7] $ echo -n 'pear_pineapple' | ./your_program.sh -E 'pear$'
+remote: [your_program] 1
+remote: [tester::#AO7] ✓ Received exit code 1.
+remote: [tester::#AO7] $ echo -n 'banana' | ./your_program.sh -E '^banana$'
+remote: [your_program] 0
+remote: [tester::#AO7] ✓ Received exit code 0.
+remote: [tester::#AO7] $ echo -n 'banana_banana' | ./your_program.sh -E '^banana$'
+remote: [your_program] 1
+remote: [tester::#AO7] ✓ Received exit code 1.
+remote: [tester::#AO7] Test passed.
+remote:
+remote: [tester::#RR8] Running tests for Stage #RR8 (Start of string anchor)
+remote: [tester::#RR8] $ echo -n 'orange_pear' | ./your_program.sh -E '^orange'
+remote: [your_program] 0
+remote: [tester::#RR8] ✓ Received exit code 0.
+remote: [tester::#RR8] $ echo -n 'pear_orange' | ./your_program.sh -E '^orange'
+remote: [your_program] 1
+remote: [tester::#RR8] ✓ Received exit code 1.
+remote: [tester::#RR8] Test passed.
+remote:
+remote: [tester::#SH9] Running tests for Stage #SH9 (Combining Character Classes)
+remote: [tester::#SH9] $ echo -n 'sally has 3 apples' | ./your_program.sh -E '\d apple'
+remote: [your_program] 0
+remote: [tester::#SH9] ✓ Received exit code 0.
+remote: [tester::#SH9] $ echo -n 'sally has 1 orange' | ./your_program.sh -E '\d apple'
+remote: [your_program] 1
+remote: [tester::#SH9] ✓ Received exit code 1.
+remote: [tester::#SH9] $ echo -n 'sally has 124 apples' | ./your_program.sh -E '\d\d\d apples'
+remote: [your_program] 0
+remote: [tester::#SH9] ✓ Received exit code 0.
+remote: [tester::#SH9] $ echo -n 'sally has 12 apples' | ./your_program.sh -E '\d\\d\\d apples'
+remote: [your_program] 1
+remote: [tester::#SH9] ✓ Received exit code 1.
+remote: [tester::#SH9] $ echo -n 'sally has 3 dogs' | ./your_program.sh -E '\d \w\w\ws'
+remote: [your_program] 0
+remote: [tester::#SH9] ✓ Received exit code 0.
+remote: [tester::#SH9] $ echo -n 'sally has 4 dogs' | ./your_program.sh -E '\d \w\w\ws'
+remote: [your_program] 0
+remote: [tester::#SH9] ✓ Received exit code 0.
+remote: [tester::#SH9] $ echo -n 'sally has 1 dog' | ./your_program.sh -E '\d \w\w\ws'
+remote: [your_program] 1
+remote: [tester::#SH9] ✓ Received exit code 1.
+remote: [tester::#SH9] Test passed.
+remote:
+remote: [tester::#RK3] Running tests for Stage #RK3 (Negative Character Groups)
+remote: [tester::#RK3] $ echo -n 'apple' | ./your_program.sh -E '[^xyz]'
+remote: [your_program] 0
+remote: [tester::#RK3] ✓ Received exit code 0.
+remote: [tester::#RK3] $ echo -n 'apple' | ./your_program.sh -E '[^abc]'
+remote: [your_program] 0
+remote: [tester::#RK3] ✓ Received exit code 0.
+remote: [tester::#RK3] $ echo -n 'banana' | ./your_program.sh -E '[^anb]'
+remote: [your_program] 1
+remote: [tester::#RK3] ✓ Received exit code 1.
+remote: [tester::#RK3] $ echo -n 'orange' | ./your_program.sh -E '[^opq]'
+remote: [your_program] 0
+remote: [tester::#RK3] ✓ Received exit code 0.
+remote: [tester::#RK3] Test passed.
+remote:
+remote: [tester::#TL6] Running tests for Stage #TL6 (Positive Character Groups)
+remote: [tester::#TL6] $ echo -n 's' | ./your_program.sh -E '[strawberry]'
+remote: [your_program] 0
+remote: [tester::#TL6] ✓ Received exit code 0.
+remote: [tester::#TL6] $ echo -n 'scd' | ./your_program.sh -E '[strawberry]'
+remote: [your_program] 0
+remote: [tester::#TL6] ✓ Received exit code 0.
+remote: [tester::#TL6] $ echo -n 'blueberry' | ./your_program.sh -E '[acdfghijk]'
+remote: [your_program] 1
+remote: [tester::#TL6] ✓ Received exit code 1.
+remote: [tester::#TL6] $ echo -n '[]' | ./your_program.sh -E '[orange]'
+remote: [your_program] 1
+remote: [tester::#TL6] ✓ Received exit code 1.
+remote: [tester::#TL6] Test passed.
+remote:
+remote: [tester::#MR9] Running tests for Stage #MR9 (Match word characters)
+remote: [tester::#MR9] $ echo -n 'orange' | ./your_program.sh -E '\w'
+remote: [your_program] 0
+remote: [tester::#MR9] ✓ Received exit code 0.
+remote: [tester::#MR9] $ echo -n 'APPLE' | ./your_program.sh -E '\w'
+remote: [your_program] 0
+remote: [tester::#MR9] ✓ Received exit code 0.
+remote: [tester::#MR9] $ echo -n '447' | ./your_program.sh -E '\w'
+remote: [your_program] 0
+remote: [tester::#MR9] ✓ Received exit code 0.
+remote: [tester::#MR9] $ echo -n '×%÷_-#=' | ./your_program.sh -E '\w'
+remote: [your_program] 0
+remote: [tester::#MR9] ✓ Received exit code 0.
+remote: [tester::#MR9] $ echo -n '+#-=÷%' | ./your_program.sh -E '\w'
+remote: [your_program] 1
+remote: [tester::#MR9] ✓ Received exit code 1.
+remote: [tester::#MR9] Test passed.
+remote:
+remote: [tester::#OQ2] Running tests for Stage #OQ2 (Match digits)
+remote: [tester::#OQ2] $ echo -n '123' | ./your_program.sh -E '\d'
+remote: [your_program] 0
+remote: [tester::#OQ2] ✓ Received exit code 0.
+remote: [tester::#OQ2] $ echo -n 'apple' | ./your_program.sh -E '\d'
+remote: [your_program] 1
+remote: [tester::#OQ2] ✓ Received exit code 1.
+remote: [tester::#OQ2] $ echo -n 'abc_0_xyz' | ./your_program.sh -E '\d'
+remote: [your_program] 0
+remote: [tester::#OQ2] ✓ Received exit code 0.
+remote: [tester::#OQ2] Test passed.
+remote:
+remote: [tester::#CQ2] Running tests for Stage #CQ2 (Match a literal character)
+remote: [tester::#CQ2] $ echo -n 'dog' | ./your_program.sh -E 'd'
+remote: [your_program] 0
+remote: [tester::#CQ2] ✓ Received exit code 0.
+remote: [tester::#CQ2] $ echo -n 'dog' | ./your_program.sh -E 'f'
+remote: [your_program] 1
+remote: [tester::#CQ2] ✓ Received exit code 1.
+remote: [tester::#CQ2] Test passed.
