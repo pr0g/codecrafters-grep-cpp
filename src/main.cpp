@@ -227,7 +227,7 @@ std::optional<int> matcher_internal(
 std::optional<int> do_match(
   std::span<pattern_token_t> pattern,
   std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
-  std::string_view::size_type input_pos) {
+  std::string_view::size_type input_pos, const int anchors) {
   std::optional<int> match;
   const char c = input[input_pos];
   std::visit(
@@ -255,8 +255,7 @@ std::optional<int> do_match(
       [&](const alternation_t& alternation) {
         for (const auto& word : alternation.words) {
           auto pattern = parse_pattern(word);
-          if (auto v =
-                matcher_internal(input, input_pos, pattern, 0, 0 /*fix me*/);
+          if (auto v = matcher_internal(input, input_pos, pattern, 0, anchors);
               v.has_value()) {
             match = v;
             return;
@@ -279,7 +278,6 @@ std::optional<int> matcher_internal(
   std::span<pattern_token_t> pattern,
   std::span<pattern_token_t>::size_type pattern_pos, int anchors) {
   if (pattern_pos == pattern.size()) {
-    // return (anchors & anchor_e::end) != 0 ? input_pos == input.size() : true;
     if ((anchors & anchor_e::end) != 0) {
       if (input_pos == input.size()) {
         return 0;
@@ -292,14 +290,13 @@ std::optional<int> matcher_internal(
   }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    // return quantifier == quantifier_e::zero_or_one ? true : false;
     if (quantifier == quantifier_e::zero_or_one) {
       return 0;
     } else {
       return std::nullopt;
     }
   }
-  if (auto off = do_match(pattern, pattern_pos, input, input_pos);
+  if (auto off = do_match(pattern, pattern_pos, input, input_pos, anchors);
       off.has_value()) {
     if (quantifier == quantifier_e::one_or_more) {
       // try to match more of the pattern (greedy)
@@ -313,7 +310,13 @@ std::optional<int> matcher_internal(
         v.has_value()) {
       return 1 + v.value();
     } else {
-      return std::nullopt;
+      if (auto v2 = matcher_internal(
+            input, input_pos + off.value(), pattern, 0, anchors);
+          v2.has_value()) {
+        return 1 + v2.value();
+      } else {
+        return std::nullopt;
+      }
     }
   } else {
     if (quantifier == quantifier_e::one_or_more) {
@@ -360,14 +363,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  // auto p = parse_pattern("I like (cats|dogs)");
-  // auto m = matcher("I like fish", p);
-  // auto p = parse_pattern("(red|blue|green)");
-  // auto m = matcher("blue", p);
-  // auto p = parse_pattern("(cat|dog)");
-  // auto m = matcher("doghouse", p);
-  // std::println("{}", m ? 0 : 1);
-
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
@@ -387,10 +382,8 @@ int main(int argc, char* argv[]) {
   try {
     if (auto parsed_pattern = parse_pattern(pattern);
         matcher(input_line, parsed_pattern)) {
-      std::cerr << std::format("0\n");
       return 0;
     } else {
-      std::cerr << std::format("1\n");
       return 1;
     }
   } catch (const std::runtime_error& e) {
