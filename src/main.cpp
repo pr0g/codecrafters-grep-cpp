@@ -299,16 +299,15 @@ std::optional<int> matcher_internal(
         return 0;
       }
     }
-    if (auto match = matcher_internal(
-          input, input_pos + next_input_pos.value(), pattern, pattern_pos + 1,
-          anchors);
-        match.has_value()) {
-      return 1 + match.value();
-    } else {
-      return matcher_internal(
-               input, input_pos + next_input_pos.value(), pattern, 0, anchors)
-        .transform([](const auto& match) { return 1 + match; });
-    }
+    return matcher_internal(
+             input, input_pos + next_input_pos.value(), pattern,
+             pattern_pos + 1, anchors)
+      .transform([](const auto& match) { return 1 + match; })
+      .or_else([&] {
+        return matcher_internal(
+                 input, input_pos + next_input_pos.value(), pattern, 0, anchors)
+          .transform([](const auto& match) { return 1 + match; });
+      });
   } else {
     if (quantifier == quantifier_e::one_or_more) {
       // no match at current position
