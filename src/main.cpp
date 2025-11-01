@@ -82,6 +82,7 @@ struct wildcard_t {
 
 struct alternation_t {
   std::vector<std::string> words;
+  std::optional<quantifier_e> quantifier;
 };
 
 struct begin_anchor_t {};
@@ -104,9 +105,7 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
       [&](positive_character_group_t& positive_character_group) {
         positive_character_group.quantifier = quantifier;
       },
-      [&](alternation_t& alternation) {
-        // todo in some form...
-      },
+      [&](alternation_t& alternation) { alternation.quantifier = quantifier; },
       [&](wildcard_t& wildcard) { wildcard.quantifier = quantifier; },
       [&](begin_anchor_t& begin_anchor) { /* noop */ },
       [&](end_anchor_t& end_anchor) { /* noop */ },
@@ -129,7 +128,7 @@ std::optional<quantifier_e> get_quantifier(
         quantifier = positive_character_group.quantifier;
       },
       [&](const alternation_t& alternation) {
-        // todo in some form...
+        quantifier = alternation.quantifier;
       },
       [&](const wildcard_t& wildcard) { quantifier = wildcard.quantifier; },
       [&](const begin_anchor_t& begin_anchor) {},

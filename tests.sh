@@ -175,6 +175,17 @@ if [ $? -ne 1 ]; then
   echo "test failed - I like fish"
 fi
 
+echo -n "I like catsdogscatsdogs" | build/Debug/grep -E "I like (cats|dogs)+" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - I like catsdogscatsdogs"
+fi
+
+echo -n "I like  and parrots" | build/Debug/grep -E "I like (cats|dogs)? and parrots" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - I like  and parrots"
+fi
+
+
 echo -n "blue" | build/Debug/grep -E "(red|blue|green)" # 0
 if [ $? -ne 0 ]; then
   echo "test failed - blue"
