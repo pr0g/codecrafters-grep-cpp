@@ -305,38 +305,23 @@ std::optional<int> matcher_internal(
         match.has_value()) {
       return 1 + match.value();
     } else {
-      if (auto next_match = matcher_internal(
-            input, input_pos + next_input_pos.value(), pattern, 0, anchors);
-          next_match.has_value()) {
-        return 1 + next_match.value();
-      } else {
-        return std::nullopt;
-      }
+      return matcher_internal(
+               input, input_pos + next_input_pos.value(), pattern, 0, anchors)
+        .transform([](const auto& match) { return 1 + match; });
     }
   } else {
     if (quantifier == quantifier_e::one_or_more) {
       // no match at current position
       return std::nullopt;
     } else if (quantifier == quantifier_e::zero_or_one) {
-      if (auto match = matcher_internal(
-            input, input_pos, pattern, pattern_pos + 1, anchors);
-          match.has_value()) {
-        return 1 + match.value();
-      } else {
-        return std::nullopt;
-      }
+      return matcher_internal(
+               input, input_pos, pattern, pattern_pos + 1, anchors)
+        .transform([](const auto& match) { return 1 + match; });
     }
-    if ((anchors & anchor_e::begin) == 0) {
-      if (auto match =
-            matcher_internal(input, input_pos + 1, pattern, 0, anchors);
-          match.has_value()) {
-        return 1 + match.value();
-      } else {
-        return std::nullopt;
-      }
-    } else {
-      return std::nullopt;
-    }
+    return (anchors & anchor_e::begin) == 0
+           ? matcher_internal(input, input_pos + 1, pattern, 0, anchors)
+               .transform([](const auto& match) { return 1 + match; })
+           : std::nullopt;
   }
 }
 
