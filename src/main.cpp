@@ -279,25 +279,19 @@ std::optional<int> matcher_internal(
   std::span<pattern_token_t>::size_type pattern_pos, int anchors) {
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
-      if (input_pos == input.size()) {
-        return 0;
-      } else {
-        return std::nullopt;
-      }
+      return input_pos == input.size() ? std::make_optional(0) : std::nullopt;
     } else {
       return 0;
     }
   }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    if (quantifier == quantifier_e::zero_or_one) {
-      return 0;
-    } else {
-      return std::nullopt;
-    }
+    return quantifier == quantifier_e::zero_or_one ? std::make_optional(0)
+                                                   : std::nullopt;
   }
-  if (auto off = do_match(pattern, pattern_pos, input, input_pos, anchors);
-      off.has_value()) {
+  if (auto next_input_pos =
+        do_match(pattern, pattern_pos, input, input_pos, anchors);
+      next_input_pos.has_value()) {
     if (quantifier == quantifier_e::one_or_more) {
       // try to match more of the pattern (greedy)
       if (matcher_internal(
@@ -305,15 +299,16 @@ std::optional<int> matcher_internal(
         return 0;
       }
     }
-    if (auto v = matcher_internal(
-          input, input_pos + off.value(), pattern, pattern_pos + 1, anchors);
-        v.has_value()) {
-      return 1 + v.value();
+    if (auto match = matcher_internal(
+          input, input_pos + next_input_pos.value(), pattern, pattern_pos + 1,
+          anchors);
+        match.has_value()) {
+      return 1 + match.value();
     } else {
-      if (auto v2 = matcher_internal(
-            input, input_pos + off.value(), pattern, 0, anchors);
-          v2.has_value()) {
-        return 1 + v2.value();
+      if (auto next_match = matcher_internal(
+            input, input_pos + next_input_pos.value(), pattern, 0, anchors);
+          next_match.has_value()) {
+        return 1 + next_match.value();
       } else {
         return std::nullopt;
       }
@@ -323,18 +318,19 @@ std::optional<int> matcher_internal(
       // no match at current position
       return std::nullopt;
     } else if (quantifier == quantifier_e::zero_or_one) {
-      if (auto v = matcher_internal(
+      if (auto match = matcher_internal(
             input, input_pos, pattern, pattern_pos + 1, anchors);
-          v.has_value()) {
-        return 1 + v.value();
+          match.has_value()) {
+        return 1 + match.value();
       } else {
         return std::nullopt;
       }
     }
     if ((anchors & anchor_e::begin) == 0) {
-      if (auto v = matcher_internal(input, input_pos + 1, pattern, 0, anchors);
-          v.has_value()) {
-        return 1 + v.value();
+      if (auto match =
+            matcher_internal(input, input_pos + 1, pattern, 0, anchors);
+          match.has_value()) {
+        return 1 + match.value();
       } else {
         return std::nullopt;
       }
