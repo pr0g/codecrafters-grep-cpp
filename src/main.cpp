@@ -139,13 +139,13 @@ std::optional<quantifier_e> get_quantifier(
 
 std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
   std::vector<pattern_token_t> pattern_tokens;
-  bool anchored_beginning = anchored_at_beginning(pattern.front());
+  const bool anchored_beginning = anchored_at_beginning(pattern.front());
   if (anchored_beginning) {
     pattern_tokens.push_back(begin_anchor_t{});
   }
-  bool anchored_end = pattern.size() >= 2
-                      ? anchored_at_end(pattern.substr(pattern.size() - 2, 2))
-                      : false;
+  const bool anchored_end =
+    pattern.size() >= 2 ? anchored_at_end(pattern.substr(pattern.size() - 2, 2))
+                        : false;
   for (int p = anchored_beginning ? 1 : 0;
        p < (anchored_end ? pattern.size() - 1 : pattern.size());) {
     if (is_literal(pattern[p])) {
@@ -218,15 +218,17 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
   return pattern_tokens;
 }
 
+// forward declaration
 std::optional<int> matcher_internal(
   std::string_view input, std::string_view::size_type input_pos,
-  std::span<pattern_token_t> pattern,
-  std::span<pattern_token_t>::size_type pattern_pos, int anchors);
+  std::span<const pattern_token_t> pattern,
+  std::span<const pattern_token_t>::size_type pattern_pos, int anchors);
 
 std::optional<int> do_match(
-  std::span<pattern_token_t> pattern,
-  std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
-  std::string_view::size_type input_pos, const int anchors) {
+  std::span<const pattern_token_t> pattern,
+  std::span<const pattern_token_t>::size_type pattern_pos,
+  std::string_view input, std::string_view::size_type input_pos,
+  const int anchors) {
   std::optional<int> match;
   const char c = input[input_pos];
   std::visit(
@@ -253,10 +255,11 @@ std::optional<int> do_match(
       },
       [&](const alternation_t& alternation) {
         for (const auto& word : alternation.words) {
-          auto pattern = parse_pattern(word);
-          if (auto v = matcher_internal(input, input_pos, pattern, 0, anchors);
-              v.has_value()) {
-            match = v;
+          const auto pattern = parse_pattern(word);
+          if (
+            auto next_match =
+              matcher_internal(input, input_pos, pattern, 0, anchors)) {
+            match = next_match;
             return;
           }
         }
@@ -274,8 +277,8 @@ struct anchor_e {
 
 std::optional<int> matcher_internal(
   std::string_view input, std::string_view::size_type input_pos,
-  std::span<pattern_token_t> pattern,
-  std::span<pattern_token_t>::size_type pattern_pos, int anchors) {
+  std::span<const pattern_token_t> pattern,
+  std::span<const pattern_token_t>::size_type pattern_pos, int anchors) {
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
       return input_pos == input.size() ? std::make_optional(0) : std::nullopt;
