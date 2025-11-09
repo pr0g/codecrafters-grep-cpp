@@ -115,26 +115,26 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
 
 std::optional<quantifier_e> get_quantifier(
   const pattern_token_t& pattern_token) {
-  std::optional<quantifier_e> quantifier;
-  std::visit(
+  return std::visit(
     overloaded{
-      [&](const literal_t& literal) { quantifier = literal.quantifier; },
-      [&](const digit_t& digit) { quantifier = digit.quantifier; },
-      [&](const word_t& word) { quantifier = word.quantifier; },
+      [&](const literal_t& literal) { return literal.quantifier; },
+      [&](const digit_t& digit) { return digit.quantifier; },
+      [&](const word_t& word) { return word.quantifier; },
       [&](const negative_character_group_t& negative_character_group) {
-        quantifier = negative_character_group.quantifier;
+        return negative_character_group.quantifier;
       },
       [&](const positive_character_group_t& positive_character_group) {
-        quantifier = positive_character_group.quantifier;
+        return positive_character_group.quantifier;
       },
-      [&](const alternation_t& alternation) {
-        quantifier = alternation.quantifier;
+      [&](const alternation_t& alternation) { return alternation.quantifier; },
+      [&](const wildcard_t& wildcard) { return wildcard.quantifier; },
+      [&](const begin_anchor_t& begin_anchor) {
+        return std::optional<quantifier_e>(std::nullopt);
       },
-      [&](const wildcard_t& wildcard) { quantifier = wildcard.quantifier; },
-      [&](const begin_anchor_t& begin_anchor) {},
-      [&](const end_anchor_t& end_anchor) {}},
+      [&](const end_anchor_t& end_anchor) {
+        return std::optional<quantifier_e>(std::nullopt);
+      }},
     pattern_token);
-  return quantifier;
 }
 
 std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
@@ -229,46 +229,51 @@ std::optional<int> do_match(
   std::span<const pattern_token_t>::size_type pattern_pos,
   std::string_view input, std::string_view::size_type input_pos,
   const int anchors) {
-  std::optional<int> match;
   const char c = input[input_pos];
-  std::visit(
+  return std::visit(
     overloaded{
       [&](const literal_t& l) {
-        match = l.l == c ? std::make_optional(1) : std::nullopt;
+        return l.l == c ? std::make_optional(1)
+                        : std::optional<int>(std::nullopt);
       },
       [&](const digit_t& digit) {
-        match = std::isdigit(c) ? std::make_optional(1) : std::nullopt;
+        return std::isdigit(c) ? std::make_optional(1)
+                               : std::optional<int>(std::nullopt);
       },
       [&](const word_t& word) {
-        match =
-          std::isalnum(c) || c == '_' ? std::make_optional(1) : std::nullopt;
+        return std::isalnum(c) || c == '_' ? std::make_optional(1)
+                                           : std::optional<int>(std::nullopt);
       },
       [&](const negative_character_group_t& negative_character_group) {
-        match = negative_character_group.group.find(c) == std::string::npos
-                ? std::make_optional(1)
-                : std::nullopt;
+        return negative_character_group.group.find(c) == std::string::npos
+               ? std::make_optional(1)
+               : std::optional<int>(std::nullopt);
       },
       [&](const positive_character_group_t& positive_character_group) {
-        match = positive_character_group.group.find(c) != std::string::npos
-                ? std::make_optional(1)
-                : std::nullopt;
+        return positive_character_group.group.find(c) != std::string::npos
+               ? std::make_optional(1)
+               : std::optional<int>(std::nullopt);
+        ;
       },
-      [&](const alternation_t& alternation) {
+      [&](const alternation_t& alternation) -> std::optional<int> {
         for (const auto& word : alternation.words) {
           const auto pattern = parse_pattern(word);
           if (
             auto next_match =
               matcher_internal(input, input_pos, pattern, 0, anchors)) {
-            match = next_match;
-            return;
+            return next_match;
           }
         }
+        return std::optional<int>(std::nullopt);
       },
-      [&](const wildcard_t& wildcard) { match = std::make_optional(1); },
-      [&](const begin_anchor_t& begin_anchor) { /* noop */ },
-      [&](const end_anchor_t& end_anchor) { /* noop */ }},
+      [&](const wildcard_t& wildcard) { return std::make_optional(1); },
+      [&](const begin_anchor_t& begin_anchor) {
+        return std::optional<int>(std::nullopt);
+      },
+      [&](const end_anchor_t& end_anchor) {
+        return std::optional<int>(std::nullopt);
+      }},
     pattern[pattern_pos]);
-  return match;
 }
 
 struct anchor_e {
