@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <numeric>
 #include <ranges>
 #include <span>
 #include <string>
@@ -43,12 +44,16 @@ bool is_negating(const std::string_view subpattern) {
   return subpattern[0] == '[' && subpattern[1] == '^';
 }
 
-bool is_digit(const char c) {
+bool is_digit_character_class(const char c) {
   return c == 'd';
 }
 
-bool is_word(const char c) {
+bool is_word_character_class(const char c) {
   return c == 'w';
+}
+
+bool is_number(unsigned char c) {
+  return std::isdigit(c);
 }
 
 enum class quantifier_e { one_or_more, zero_or_one };
@@ -85,13 +90,18 @@ struct alternation_t {
   std::optional<quantifier_e> quantifier;
 };
 
+struct backreference_t {
+  int number;
+  std::optional<quantifier_e> quantifier;
+};
+
 struct begin_anchor_t {};
 struct end_anchor_t {};
 
 using pattern_token_t = std::variant<
   literal_t, digit_t, word_t, positive_character_group_t,
   negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
-  alternation_t>;
+  alternation_t, backreference_t>;
 
 void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
   std::visit(
@@ -107,6 +117,9 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
       },
       [&](alternation_t& alternation) { alternation.quantifier = quantifier; },
       [&](wildcard_t& wildcard) { wildcard.quantifier = quantifier; },
+      [&](backreference_t& backreference) {
+        backreference.quantifier = quantifier;
+      },
       [&](begin_anchor_t& begin_anchor) { /* noop */ },
       [&](end_anchor_t& end_anchor) { /* noop */ },
     },
@@ -128,6 +141,9 @@ std::optional<quantifier_e> get_quantifier(
       },
       [&](const alternation_t& alternation) { return alternation.quantifier; },
       [&](const wildcard_t& wildcard) { return wildcard.quantifier; },
+      [&](const backreference_t& backreference) {
+        return backreference.quantifier;
+      },
       [&](const begin_anchor_t& begin_anchor) {
         return std::optional<quantifier_e>(std::nullopt);
       },
@@ -163,15 +179,22 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
       }
     } else {
       if (is_escape(pattern[p])) {
-        if (is_digit(pattern[p + 1])) {
+        if (is_digit_character_class(pattern[p + 1])) {
           pattern_tokens.push_back(digit_t{});
           p += 2;
-        } else if (is_word(pattern[p + 1])) {
+        } else if (is_word_character_class(pattern[p + 1])) {
           pattern_tokens.push_back(word_t{});
           p += 2;
         } else if (pattern[p + 1] == '\\') {
           pattern_tokens.push_back(literal_t{.l = '\\'});
           p += 2;
+        } else if (is_number(pattern[p + 1])) {
+          const auto number_start = pattern.begin() + p + 1;
+          const auto number_end =
+            std::find_if_not(number_start, pattern.end(), is_number);
+          const auto number =
+            std::stoi(std::string(std::string_view(number_start, number_end)));
+          pattern_tokens.push_back(backreference_t{.number = number});
         }
       } else if (is_character_opener(pattern[p])) {
         if (is_negating(pattern.substr(p, 2))) {
@@ -267,6 +290,10 @@ std::optional<int> do_match(
         return std::optional<int>(std::nullopt);
       },
       [&](const wildcard_t& wildcard) { return std::make_optional(1); },
+      [&](const backreference_t& backreference) {
+        // lookup backreference, attempt to match, return match
+        return std::optional<int>(std::nullopt); // todo
+      },
       [&](const begin_anchor_t& begin_anchor) {
         return std::optional<int>(std::nullopt);
       },
@@ -351,6 +378,19 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  auto parsed_pattern = parse_pattern("(cat) and \1");
+
+  std::vector<alternation_t> capture_groups = std::accumulate(
+    parsed_pattern.begin(), parsed_pattern.end(), std::vector<alternation_t>{},
+    [](std::vector<alternation_t> acc, const pattern_token_t& pattern_token) {
+      if (std::holds_alternative<alternation_t>(pattern_token)) {
+        acc.push_back(std::get<alternation_t>(pattern_token));
+      }
+      return acc;
+    });
+
+  auto match = matcher("cat and cat", parsed_pattern);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;

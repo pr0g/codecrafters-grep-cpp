@@ -185,7 +185,6 @@ if [ $? -ne 0 ]; then
   echo "test failed - I like  and parrots"
 fi
 
-
 echo -n "blue" | build/Debug/grep -E "(red|blue|green)" # 0
 if [ $? -ne 0 ]; then
   echo "test failed - blue"
@@ -229,4 +228,9 @@ fi
 echo -n 'gol' | build/Debug/grep -E 'g.+gol' # 1
 if [ $? -ne 1 ]; then
   echo "test failed - gol"
+fi
+
+echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - somethinggoodbye."
 fi
