@@ -285,7 +285,7 @@ std::optional<int> do_match(
           auto pattern = parse_pattern(word);
           if (
             auto next_match = matcher_internal(
-              input, input_pos, pattern, 0, anchors, capture_groups)) {
+              input, input_pos, pattern, 0, 0, capture_groups)) {
             alternation.matched = std::string(
               input.begin() + input_pos,
               input.begin() + input_pos + *next_match);
@@ -302,7 +302,7 @@ std::optional<int> do_match(
           auto pattern = parse_pattern(word);
           if (
             auto next_match = matcher_internal(
-              input, input_pos, pattern, 0, anchors, capture_groups)) {
+              input, input_pos, pattern, 0, 0, capture_groups)) {
             return next_match;
           }
         }
@@ -415,6 +415,10 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
+  auto capture_groups = get_capture_groups(parsed_pattern);
+  auto res = matcher("cat is cat, not dog", parsed_pattern, capture_groups);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
