@@ -255,6 +255,21 @@ if [ $? -ne 0 ]; then
   echo "test failed - cat is cat, not dog."
 fi
 
+echo -n '3 red and 3 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - 3 red and 3 red."
+fi
+
+echo -n '3 red and 4 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - 3 red and 4 red."
+fi
+
+echo -n 'cat and dog are dog and cat' | build/Debug/grep -E '(cat) and (dog) are \2 and \1' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat and dog are dog and cat."
+fi
+
 # nesting not currently supported
 # echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
 # if [ $? -ne 0 ]; then
