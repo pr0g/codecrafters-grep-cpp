@@ -230,9 +230,14 @@ if [ $? -ne 1 ]; then
   echo "test failed - gol"
 fi
 
-echo -n 'cat and dog' | build/Debug/grep -E '(\w+) and \1' # 0
+echo -n 'cat and cat' | build/Debug/grep -E '(\w+) and \1' # 0
 if [ $? -ne 0 ]; then
-  echo "test failed - cat and dog."
+  echo "test failed - cat and cat."
+fi
+
+echo -n 'cat and dog' | build/Debug/grep -E '(\w+) and \1' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - cat and dog ('(\w+) and \1')."
 fi
 
 echo -n 'cat and dog' | build/Debug/grep -E '(cat) and \1' # 1
