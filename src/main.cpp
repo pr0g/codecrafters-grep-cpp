@@ -86,6 +86,7 @@ struct wildcard_t {
 };
 
 struct alternation_t {
+  std::string matched;
   std::vector<std::string> words;
   std::optional<quantifier_e> quantifier;
 };
@@ -279,12 +280,15 @@ std::optional<int> do_match(
                ? std::make_optional(1)
                : std::optional<int>(std::nullopt);
       },
-      [&](const alternation_t& alternation) -> std::optional<int> {
+      [&](alternation_t& alternation) -> std::optional<int> {
         for (const auto& word : alternation.words) {
           auto pattern = parse_pattern(word);
           if (
             auto next_match = matcher_internal(
               input, input_pos, pattern, 0, anchors, capture_groups)) {
+            alternation.matched = std::string(
+              input.begin() + input_pos,
+              input.begin() + input_pos + *next_match);
             return next_match;
           }
         }
@@ -294,17 +298,15 @@ std::optional<int> do_match(
       [&](const backreference_t& backreference) {
         if (int capture_group_index = backreference.number - 1;
             capture_group_index < capture_groups.size()) {
-          for (const auto& word : capture_groups[capture_group_index]->words) {
-            auto pattern = parse_pattern(word);
-            if (
-              auto next_match = matcher_internal(
-                input, input_pos, pattern, 0, anchors, capture_groups)) {
-              return next_match;
-            }
+          const auto& word = capture_groups[capture_group_index]->matched;
+          auto pattern = parse_pattern(word);
+          if (
+            auto next_match = matcher_internal(
+              input, input_pos, pattern, 0, anchors, capture_groups)) {
+            return next_match;
           }
         }
-        // lookup backreference, attempt to match, return match
-        return std::optional<int>(std::nullopt); // todo
+        return std::optional<int>(std::nullopt);
       },
       [&](const begin_anchor_t& begin_anchor) {
         return std::optional<int>(std::nullopt);
@@ -341,10 +343,11 @@ std::optional<int> matcher_internal(
     .and_then([&](const auto& next_input_pos) {
       if (quantifier == quantifier_e::one_or_more) {
         // try to match more of the pattern (greedy)
-        if (matcher_internal(
+        if (auto m = matcher_internal(
               input, input_pos + 1, pattern, pattern_pos, anchors,
-              capture_groups)) {
-          return std::make_optional(0);
+              capture_groups);
+            m.has_value()) {
+          return std::optional<int>(1 + m.value());
         }
       }
       return matcher_internal(
