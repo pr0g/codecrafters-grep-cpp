@@ -416,10 +416,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
-  auto capture_groups = get_capture_groups(parsed_pattern);
-  auto res = matcher("cat is cat, not dog", parsed_pattern, capture_groups);
-
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
