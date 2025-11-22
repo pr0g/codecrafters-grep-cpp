@@ -343,11 +343,13 @@ std::optional<int> matcher_internal(
     .and_then([&](const auto& next_input_pos) {
       if (quantifier == quantifier_e::one_or_more) {
         // try to match more of the pattern (greedy)
-        if (auto m = matcher_internal(
+        if (
+          const auto match =
+            matcher_internal(
               input, input_pos + 1, pattern, pattern_pos, anchors,
-              capture_groups);
-            m.has_value()) {
-          return std::optional<int>(1 + m.value());
+              capture_groups)
+              .transform([](const auto& match) { return 1 + match; })) {
+          return match;
         }
       }
       return matcher_internal(
