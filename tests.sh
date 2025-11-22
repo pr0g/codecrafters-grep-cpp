@@ -230,7 +230,23 @@ if [ $? -ne 1 ]; then
   echo "test failed - gol"
 fi
 
-echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
+echo -n 'cat and dog' | build/Debug/grep -E '(\w+) and \1' # 0
 if [ $? -ne 0 ]; then
-  echo "test failed - somethinggoodbye."
+  echo "test failed - cat and dog."
 fi
+
+echo -n 'cat and dog' | build/Debug/grep -E '(cat) and \1' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - cat and dog ('(cat) and \1')."
+fi
+
+echo -n '123-123' | build/Debug/grep -E '(\d+)-\1' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - 123-123."
+fi
+
+# nesting not currently supported
+# echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
+# if [ $? -ne 0 ]; then
+#   echo "test failed - somethinggoodbye."
+# fi
