@@ -411,12 +411,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  auto parsed_pattern = parse_pattern("(space) and (comfort) is \\1 and \\2");
-
-  const auto capture_groups = get_capture_groups(parsed_pattern);
-  auto match = matcher(
-    "space and comfort is space and comfort", parsed_pattern, capture_groups);
-
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
