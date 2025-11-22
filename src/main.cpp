@@ -245,15 +245,15 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
 // forward declaration
 std::optional<int> matcher_internal(
   std::string_view input, std::string_view::size_type input_pos,
-  std::span<const pattern_token_t> pattern,
-  std::span<const pattern_token_t>::size_type pattern_pos, const int anchors,
-  std::span<const alternation_t> capture_groups);
+  std::span<pattern_token_t> pattern,
+  std::span<pattern_token_t>::size_type pattern_pos, const int anchors,
+  std::span<alternation_t*> capture_groups);
 
 std::optional<int> do_match(
-  std::span<const pattern_token_t> pattern,
-  std::span<const pattern_token_t>::size_type pattern_pos,
-  std::string_view input, std::string_view::size_type input_pos,
-  const int anchors, std::span<const alternation_t> capture_groups) {
+  std::span<pattern_token_t> pattern,
+  std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
+  std::string_view::size_type input_pos, const int anchors,
+  std::span<alternation_t*> capture_groups) {
   const char c = input[input_pos];
   return std::visit(
     overloaded{
@@ -281,7 +281,7 @@ std::optional<int> do_match(
       },
       [&](const alternation_t& alternation) -> std::optional<int> {
         for (const auto& word : alternation.words) {
-          const auto pattern = parse_pattern(word);
+          auto pattern = parse_pattern(word);
           if (
             auto next_match = matcher_internal(
               input, input_pos, pattern, 0, anchors, capture_groups)) {
@@ -294,8 +294,8 @@ std::optional<int> do_match(
       [&](const backreference_t& backreference) {
         if (int capture_group_index = backreference.number - 1;
             capture_group_index < capture_groups.size()) {
-          for (const auto& word : capture_groups[capture_group_index].words) {
-            const auto pattern = parse_pattern(word);
+          for (const auto& word : capture_groups[capture_group_index]->words) {
+            auto pattern = parse_pattern(word);
             if (
               auto next_match = matcher_internal(
                 input, input_pos, pattern, 0, anchors, capture_groups)) {
@@ -321,9 +321,9 @@ struct anchor_e {
 
 std::optional<int> matcher_internal(
   std::string_view input, std::string_view::size_type input_pos,
-  std::span<const pattern_token_t> pattern,
-  std::span<const pattern_token_t>::size_type pattern_pos, int anchors,
-  std::span<const alternation_t> capture_groups) {
+  std::span<pattern_token_t> pattern,
+  std::span<pattern_token_t>::size_type pattern_pos, int anchors,
+  std::span<alternation_t*> capture_groups) {
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
       return input_pos == input.size() ? std::make_optional(0) : std::nullopt;
@@ -379,8 +379,8 @@ std::optional<int> matcher_internal(
 }
 
 bool matcher(
-  std::string_view input, std::span<const pattern_token_t> pattern,
-  std::span<const alternation_t> capture_groups) {
+  std::string_view input, std::span<pattern_token_t> pattern,
+  std::span<alternation_t*> capture_groups) {
   int anchors = 0;
   auto p = pattern;
   if (std::holds_alternative<begin_anchor_t>(pattern.front())) {
@@ -394,13 +394,13 @@ bool matcher(
   return matcher_internal(input, 0, p, 0, anchors, capture_groups).has_value();
 }
 
-std::vector<alternation_t> get_capture_groups(
-  std::span<const pattern_token_t> parsed_pattern) {
+std::vector<alternation_t*> get_capture_groups(
+  std::span<pattern_token_t> parsed_pattern) {
   return std::accumulate(
-    parsed_pattern.begin(), parsed_pattern.end(), std::vector<alternation_t>{},
-    [](std::vector<alternation_t> acc, const pattern_token_t& pattern_token) {
+    parsed_pattern.begin(), parsed_pattern.end(), std::vector<alternation_t*>{},
+    [](std::vector<alternation_t*> acc, pattern_token_t& pattern_token) {
       if (std::holds_alternative<alternation_t>(pattern_token)) {
-        acc.push_back(std::get<alternation_t>(pattern_token));
+        acc.push_back(std::get_if<alternation_t>(&pattern_token));
       }
       return acc;
     });
@@ -410,6 +410,10 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  auto parsed_pattern = parse_pattern("(\\w+) and \\1");
+  auto capture_groups = get_capture_groups(parsed_pattern);
+  auto r = matcher("cat and dog", parsed_pattern, capture_groups);
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -428,8 +432,8 @@ int main(int argc, char* argv[]) {
   std::getline(std::cin, input_line);
 
   try {
-    const auto parsed_pattern = parse_pattern(pattern);
-    const auto capture_groups = get_capture_groups(parsed_pattern);
+    auto parsed_pattern = parse_pattern(pattern);
+    auto capture_groups = get_capture_groups(parsed_pattern);
     if (matcher(input_line, parsed_pattern, capture_groups)) {
       return 0;
     } else {
