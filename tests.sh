@@ -275,6 +275,11 @@ if [ $? -ne 1 ]; then
   echo "test failed - pineapple pie, pineapple and pie."
 fi
 
+echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '(apple) (\w+)' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - pineapple pie, pineapple and pie."
+fi
+
 # nesting not currently supported
 # echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
 # if [ $? -ne 0 ]; then
