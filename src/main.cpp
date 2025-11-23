@@ -294,7 +294,7 @@ std::optional<int> do_match(
                ? std::make_optional(1)
                : std::optional<int>(std::nullopt);
       },
-      [&](alternation_t& alternation) -> std::optional<int> {
+      [&](alternation_t& alternation) {
         for (const auto& word : alternation.words) {
           auto pattern = parse_pattern(word);
           std::optional<int> first_match_position;
@@ -343,15 +343,17 @@ std::optional<int> matcher_internal(
   std::optional<int>& first_match_position) {
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
-      return input_pos == input.size() ? std::make_optional(0) : std::nullopt;
+      return input_pos == input.size() ? std::make_optional(0)
+                                       : std::optional<int>(std::nullopt);
     } else {
       return 0;
     }
   }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    return quantifier == quantifier_e::zero_or_one ? std::make_optional(0)
-                                                   : std::nullopt;
+    return quantifier == quantifier_e::zero_or_one
+           ? std::make_optional(0)
+           : std::optional<int>(std::nullopt);
   }
   return do_match(
            pattern, pattern_pos, input, input_pos, anchors, capture_groups)
@@ -382,10 +384,10 @@ std::optional<int> matcher_internal(
             .transform([](const auto& match) { return 1 + match; });
         });
     })
-    .or_else([&] -> std::optional<int> {
+    .or_else([&] {
       if (quantifier == quantifier_e::one_or_more) {
         // no match at current position
-        return std::nullopt;
+        return std::optional<int>(std::nullopt);
       } else if (quantifier == quantifier_e::zero_or_one) {
         return matcher_internal(
                  input, input_pos, pattern, pattern_pos + 1, anchors,
@@ -398,7 +400,7 @@ std::optional<int> matcher_internal(
                  input, input_pos + 1, pattern, 0, anchors, capture_groups,
                  first_match_position)
                  .transform([](const auto& match) { return 1 + match; })
-             : std::nullopt;
+             : std::optional<int>(std::nullopt);
     });
 }
 
