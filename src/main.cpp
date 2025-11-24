@@ -263,7 +263,8 @@ std::optional<match_result_t> do_match(
   std::span<pattern_token_t> pattern,
   std::span<pattern_token_t>::size_type pattern_pos, std::string_view input,
   std::string_view::size_type input_pos, const int anchors,
-  std::span<alternation_t*> capture_groups) {
+  std::span<alternation_t*> capture_groups,
+  std::optional<int>& first_match_position) {
   const char c = input[input_pos];
   const auto anchors_for_subpattern = [&pattern, pattern_pos, anchors]() {
     if (pattern_pos == 0) {
@@ -302,14 +303,16 @@ std::optional<match_result_t> do_match(
       [&](alternation_t& alternation) {
         for (const auto& word : alternation.words) {
           auto pattern = parse_pattern(word);
-          std::optional<int> first_match_position;
-          if (
-            auto next_match = matcher_internal(
-              input, input_pos, pattern, 0, anchors_for_subpattern(),
-              capture_groups, first_match_position)) {
+          if (std::optional<int> match_position;
+              auto next_match = matcher_internal(
+                input, input_pos, pattern, 0, anchors_for_subpattern(),
+                capture_groups, match_position)) {
             alternation.matched = std::string(
-              input.begin() + *first_match_position,
-              input.begin() + input_pos + next_match->move);
+              input.begin() + *match_position,
+              input.begin() + *match_position + next_match->move);
+            if (!first_match_position.has_value()) {
+              first_match_position = match_position;
+            }
             return next_match;
           }
         }
@@ -323,7 +326,6 @@ std::optional<match_result_t> do_match(
             capture_group_index < capture_groups.size()) {
           const auto& word = capture_groups[capture_group_index]->matched;
           auto pattern = parse_pattern(word);
-          std::optional<int> first_match_position;
           if (
             auto next_match = matcher_internal(
               input, input_pos, pattern, 0, anchors_for_subpattern(),
@@ -364,7 +366,8 @@ std::optional<match_result_t> matcher_internal(
            : std::optional<match_result_t>(std::nullopt);
   }
   return do_match(
-           pattern, pattern_pos, input, input_pos, anchors, capture_groups)
+           pattern, pattern_pos, input, input_pos, anchors, capture_groups,
+           first_match_position)
     .and_then([&](match_result_t match_result) {
       if (!first_match_position.has_value()) {
         first_match_position = input_pos;
