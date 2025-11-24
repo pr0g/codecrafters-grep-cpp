@@ -309,7 +309,7 @@ std::optional<match_result_t> do_match(
                 capture_groups, match_position)) {
             alternation.matched = std::string(
               input.begin() + *match_position,
-              input.begin() + *match_position + next_match->move);
+              input.begin() + input_pos + next_match->move);
             if (!first_match_position.has_value()) {
               first_match_position = match_position;
             }
