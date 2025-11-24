@@ -385,8 +385,8 @@ std::optional<match_result_t> matcher_internal(
       return matcher_internal(
                input, input_pos + match_result.move, pattern, pattern_pos + 1,
                anchors, capture_groups, first_match_position)
-        .transform([](match_result_t match) {
-          match.move += 1;
+        .transform([&](match_result_t match) {
+          match.move += match_result.move;
           return match;
         })
         .or_else([&] {
@@ -394,8 +394,8 @@ std::optional<match_result_t> matcher_internal(
           return matcher_internal(
                    input, input_pos + match_result.move, pattern, 0, anchors,
                    capture_groups, first_match_position)
-            .transform([](match_result_t match) {
-              match.move += 1;
+            .transform([&](match_result_t match) {
+              match.move += match_result.move;
               return match;
             });
         });
@@ -418,9 +418,9 @@ std::optional<match_result_t> matcher_internal(
         return matcher_internal(
                  input, input_pos + 1, pattern, 0, anchors, capture_groups,
                  first_match_position)
-          .transform([](match_result_t m) {
-            m.move += 1;
-            return m;
+          .transform([](match_result_t match) {
+            match.move += 1;
+            return match;
           });
       } else {
         return std::optional<match_result_t>(std::nullopt);
