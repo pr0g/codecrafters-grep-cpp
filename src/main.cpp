@@ -248,7 +248,7 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
 }
 
 struct match_result_t {
-  int position;
+  int move;
 };
 
 // forward declaration
@@ -277,27 +277,26 @@ std::optional<match_result_t> do_match(
   return std::visit(
     overloaded{
       [&](const literal_t& l) {
-        return l.l == c ? std::make_optional(match_result_t{.position = 1})
+        return l.l == c ? std::make_optional(match_result_t{.move = 1})
                         : std::optional<match_result_t>(std::nullopt);
       },
       [&](const digit_t& digit) {
-        return std::isdigit(c)
-               ? std::make_optional(match_result_t{.position = 1})
-               : std::optional<match_result_t>(std::nullopt);
+        return std::isdigit(c) ? std::make_optional(match_result_t{.move = 1})
+                               : std::optional<match_result_t>(std::nullopt);
       },
       [&](const word_t& word) {
         return std::isalnum(c) || c == '_'
-               ? std::make_optional(match_result_t{.position = 1})
+               ? std::make_optional(match_result_t{.move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](const negative_character_group_t& negative_character_group) {
         return negative_character_group.group.find(c) == std::string::npos
-               ? std::make_optional(match_result_t{.position = 1})
+               ? std::make_optional(match_result_t{.move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](const positive_character_group_t& positive_character_group) {
         return positive_character_group.group.find(c) != std::string::npos
-               ? std::make_optional(match_result_t{.position = 1})
+               ? std::make_optional(match_result_t{.move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](alternation_t& alternation) {
@@ -310,14 +309,14 @@ std::optional<match_result_t> do_match(
               capture_groups, first_match_position)) {
             alternation.matched = std::string(
               input.begin() + *first_match_position,
-              input.begin() + input_pos + next_match->position);
+              input.begin() + input_pos + next_match->move);
             return next_match;
           }
         }
         return std::optional<match_result_t>(std::nullopt);
       },
       [&](const wildcard_t& wildcard) {
-        return std::make_optional(match_result_t{.position = 1});
+        return std::make_optional(match_result_t{.move = 1});
       },
       [&](const backreference_t& backreference) {
         if (int capture_group_index = backreference.number - 1;
@@ -329,8 +328,7 @@ std::optional<match_result_t> do_match(
             auto next_match = matcher_internal(
               input, input_pos, pattern, 0, anchors_for_subpattern(),
               capture_groups, first_match_position)) {
-            return std::make_optional(
-              match_result_t{.position = next_match->position});
+            return std::make_optional(match_result_t{.move = next_match->move});
           }
         }
         return std::optional<match_result_t>(std::nullopt);
@@ -353,16 +351,16 @@ std::optional<match_result_t> matcher_internal(
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
       return input_pos == input.size()
-             ? std::make_optional(match_result_t{.position = 0})
+             ? std::make_optional(match_result_t{.move = 0})
              : std::optional<match_result_t>(std::nullopt);
     } else {
-      return std::make_optional(match_result_t{.position = 0});
+      return std::make_optional(match_result_t{.move = 0});
     }
   }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
     return quantifier == quantifier_e::zero_or_one
-           ? std::make_optional(match_result_t{.position = 0})
+           ? std::make_optional(match_result_t{.move = 0})
            : std::optional<match_result_t>(std::nullopt);
   }
   return do_match(
@@ -378,26 +376,26 @@ std::optional<match_result_t> matcher_internal(
                                input, input_pos + 1, pattern, pattern_pos,
                                anchors, capture_groups, first_match_position)
                                .transform([](match_result_t match) {
-                                 match.position += 1;
+                                 match.move += 1;
                                  return match;
                                })) {
           return match;
         }
       }
       return matcher_internal(
-               input, input_pos + match_result.position, pattern,
-               pattern_pos + 1, anchors, capture_groups, first_match_position)
+               input, input_pos + match_result.move, pattern, pattern_pos + 1,
+               anchors, capture_groups, first_match_position)
         .transform([](match_result_t match) {
-          match.position += 1;
+          match.move += 1;
           return match;
         })
         .or_else([&] {
           // backtrack
           return matcher_internal(
-                   input, input_pos + match_result.position, pattern, 0,
-                   anchors, capture_groups, first_match_position)
+                   input, input_pos + match_result.move, pattern, 0, anchors,
+                   capture_groups, first_match_position)
             .transform([](match_result_t match) {
-              match.position += 1;
+              match.move += 1;
               return match;
             });
         });
@@ -411,7 +409,7 @@ std::optional<match_result_t> matcher_internal(
                  input, input_pos, pattern, pattern_pos + 1, anchors,
                  capture_groups, first_match_position)
           .transform([](match_result_t match) {
-            match.position += 1;
+            match.move += 1;
             return match;
           });
       }
@@ -421,7 +419,7 @@ std::optional<match_result_t> matcher_internal(
                  input, input_pos + 1, pattern, 0, anchors, capture_groups,
                  first_match_position)
           .transform([](match_result_t m) {
-            m.position += 1;
+            m.move += 1;
             return m;
           });
       } else {
