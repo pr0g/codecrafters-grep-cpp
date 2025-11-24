@@ -505,3 +505,10 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 }
+
+// debug - output start and end position for match
+// .transform([&](match_result_t match_result) {
+//   std::cerr << "start position: " << *first_match_position << '\n';
+//   std::cerr << "end position: " << match_result.move << '\n';
+//   return match_result;
+// })
