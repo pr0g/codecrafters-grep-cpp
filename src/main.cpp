@@ -426,7 +426,7 @@ std::optional<match_result_t> matcher_internal(
     });
 }
 
-bool matcher(
+std::optional<match_result_t> matcher(
   std::string_view input, std::span<pattern_token_t> pattern,
   std::span<alternation_t*> capture_groups) {
   uint32_t anchors = 0;
@@ -439,7 +439,7 @@ bool matcher(
     p = p | std::views::take(p.size() - 1);
     anchors |= anchor_e::end;
   }
-  return matcher_internal(input, 0, p, 0, anchors, capture_groups).has_value();
+  return matcher_internal(input, 0, p, 0, anchors, capture_groups);
 }
 
 std::vector<alternation_t*> get_capture_groups(
@@ -478,7 +478,11 @@ int main(int argc, char* argv[]) {
   try {
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
-    if (matcher(input_line, parsed_pattern, capture_groups)) {
+    if (auto match = matcher(input_line, parsed_pattern, capture_groups)) {
+      // debug output matching part of string
+      // std::cerr << input_line.substr(match->start, match->move -
+      // match->start)
+      //           << '\n';
       return 0;
     } else {
       return 1;
@@ -488,10 +492,3 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 }
-
-// debug - output start and end position for match
-// .transform([&](match_result_t match_result) {
-//   std::cerr << "start position: " << match_result.start << '\n';
-//   std::cerr << "end position: " << match_result.move << '\n';
-//   return match_result;
-// })
