@@ -276,31 +276,31 @@ std::optional<match_result_t> do_match(
     overloaded{
       [&](const literal_t& l) {
         return l.l == c ? std::make_optional(
-                            match_result_t{.move = 1, .start = input_pos})
+                            match_result_t{.start = input_pos, .move = 1})
                         : std::optional<match_result_t>(std::nullopt);
       },
       [&](const digit_t& digit) {
         return std::isdigit(c)
                ? std::make_optional(
-                   match_result_t{.move = 1, .start = input_pos})
+                   match_result_t{.start = input_pos, .move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](const word_t& word) {
         return std::isalnum(c) || c == '_'
                ? std::make_optional(
-                   match_result_t{.move = 1, .start = input_pos})
+                   match_result_t{.start = input_pos, .move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](const negative_character_group_t& negative_character_group) {
         return negative_character_group.group.find(c) == std::string::npos
                ? std::make_optional(
-                   match_result_t{.move = 1, .start = input_pos})
+                   match_result_t{.start = input_pos, .move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](const positive_character_group_t& positive_character_group) {
         return positive_character_group.group.find(c) != std::string::npos
                ? std::make_optional(
-                   match_result_t{.move = 1, .start = input_pos})
+                   match_result_t{.start = input_pos, .move = 1})
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](alternation_t& alternation) {
@@ -320,7 +320,7 @@ std::optional<match_result_t> do_match(
       },
       [&](const wildcard_t& wildcard) {
         return std::make_optional(
-          match_result_t{.move = 1, .start = input_pos});
+          match_result_t{.start = input_pos, .move = 1});
       },
       [&](const backreference_t& backreference) {
         if (int capture_group_index = backreference.number - 1;
@@ -352,16 +352,16 @@ std::optional<match_result_t> matcher_internal(
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
       return input_pos == input.size()
-             ? std::make_optional(match_result_t{.move = 0, .start = input_pos})
+             ? std::make_optional(match_result_t{.start = input_pos, .move = 0})
              : std::optional<match_result_t>(std::nullopt);
     } else {
-      return std::make_optional(match_result_t{.move = 0, .start = input_pos});
+      return std::make_optional(match_result_t{.start = input_pos, .move = 0});
     }
   }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
     return quantifier == quantifier_e::zero_or_one
-           ? std::make_optional(match_result_t{.move = 0, .start = input_pos})
+           ? std::make_optional(match_result_t{.start = input_pos, .move = 0})
            : std::optional<match_result_t>(std::nullopt);
   }
   return do_match(
