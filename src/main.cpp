@@ -374,8 +374,6 @@ std::optional<match_result_t> matcher_internal(
                                input, input_pos + 1, pattern, pattern_pos,
                                anchors, capture_groups)
                                .transform([&](match_result_t match) {
-                                 match.start =
-                                   std::min(match_result.start, match.start);
                                  match.move += 1;
                                  return match;
                                })) {
@@ -396,7 +394,6 @@ std::optional<match_result_t> matcher_internal(
                    input, input_pos + match_result.move, pattern, 0, anchors,
                    capture_groups)
             .transform([&](match_result_t match) {
-              match.start = std::min(match_result.start, match.start);
               match.move += match_result.move;
               return match;
             });
