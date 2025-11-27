@@ -85,9 +85,10 @@ struct wildcard_t {
   std::optional<quantifier_e> quantifier;
 };
 
+// todo: rename to capture group
 struct alternation_t {
   std::string matched;
-  std::vector<std::string> words;
+  std::vector<std::string> words; // move out of capture group
   std::optional<quantifier_e> quantifier;
 };
 
