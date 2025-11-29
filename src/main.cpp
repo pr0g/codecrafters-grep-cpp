@@ -85,13 +85,13 @@ struct wildcard_t {
   std::optional<quantifier_e> quantifier;
 };
 
-// todo: rename to capture group
 struct capture_group_t {
   std::string matched;
   std::string pattern;
-  // std::vector<std::string> words; // move out of capture group
   std::optional<quantifier_e> quantifier;
 };
+
+struct alternation_t {};
 
 struct backreference_t {
   int number;
@@ -225,43 +225,22 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
           p += characters.size() + 2;
         }
       } else if (is_capture_group_opener(pattern[p])) {
-        // need to parse capture group as a new subexpression (handle
-        // recursively)
         const auto offset = p + 1;
-        // const auto end = pattern.find(')', offset);
-        // const auto characters = pattern.substr(offset, end - offset);
-        int word_offset = 0;
         capture_group_t capture_group;
-        // instead of searching for | characters, look for matching closing
-        // brace
-        int depth = 0;
+        int nesting_depth = 0;
         for (int i = offset, size = 0;; size++, i++) {
           if (pattern[i] == '(') {
-            depth++;
+            nesting_depth++;
           }
           if (pattern[i] == ')') {
-            if (depth == 0) {
+            if (nesting_depth == 0) {
               capture_group.pattern = pattern.substr(offset, size);
               break;
             } else {
-              depth--;
+              nesting_depth--;
             }
           }
         }
-        // while (true) {
-        //   if (const auto split = characters.find('|', word_offset);
-        //       split != std::string::npos) {
-        //     capture_group.words.push_back(
-        //       std::string(characters.substr(word_offset, split -
-        //       word_offset)));
-        //     word_offset = split + 1;
-        //   } else {
-        //     capture_group.words.push_back(
-        //       std::string(characters.substr(word_offset)));
-        //     break;
-        //   }
-        // }
-        // p += characters.size() + 2;
         p += capture_group.pattern.size() + 2;
         pattern_tokens.push_back(std::move(capture_group));
       }
@@ -473,7 +452,12 @@ std::vector<capture_group_t*> get_capture_groups(
     std::vector<capture_group_t*>{},
     [](std::vector<capture_group_t*> acc, pattern_token_t& pattern_token) {
       if (std::holds_alternative<capture_group_t>(pattern_token)) {
-        acc.push_back(std::get_if<capture_group_t>(&pattern_token));
+        auto* capture_group = std::get_if<capture_group_t>(&pattern_token);
+        auto sub_parsed_pattern = parse_pattern(capture_group->pattern);
+        auto sub_capture_groups = get_capture_groups(sub_parsed_pattern);
+        acc.push_back(capture_group);
+        acc.insert(
+          acc.end(), sub_capture_groups.begin(), sub_capture_groups.end());
       }
       return acc;
     });
@@ -485,10 +469,11 @@ int main(int argc, char* argv[]) {
   std::cerr << std::unitbuf;
 
   {
-    auto parsed_pattern = parse_pattern("(a(pp)le) (\\w+)");
+    auto parsed_pattern = parse_pattern("('(cat) and \\2') is the same as \\1");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(
-      "pineapple pie, pineapple and pie", parsed_pattern, capture_groups);
+      "'cat and cat' is the same as 'cat and cat'", parsed_pattern,
+      capture_groups);
     int test;
     test = 0;
   }
