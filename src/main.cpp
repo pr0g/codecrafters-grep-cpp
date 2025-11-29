@@ -122,7 +122,9 @@ void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
       [&](positive_character_group_t& positive_character_group) {
         positive_character_group.quantifier = quantifier;
       },
-      [&](capture_group_t& capture_group) { capture_group.quantifier = quantifier; },
+      [&](capture_group_t& capture_group) {
+        capture_group.quantifier = quantifier;
+      },
       [&](wildcard_t& wildcard) { wildcard.quantifier = quantifier; },
       [&](backreference_t& backreference) {
         backreference.quantifier = quantifier;
@@ -146,7 +148,9 @@ std::optional<quantifier_e> get_quantifier(
       [&](const positive_character_group_t& positive_character_group) {
         return positive_character_group.quantifier;
       },
-      [&](const capture_group_t& capture_group) { return capture_group.quantifier; },
+      [&](const capture_group_t& capture_group) {
+        return capture_group.quantifier;
+      },
       [&](const wildcard_t& wildcard) { return wildcard.quantifier; },
       [&](const backreference_t& backreference) {
         return backreference.quantifier;
@@ -221,22 +225,24 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
           p += characters.size() + 2;
         }
       } else if (is_capture_group_opener(pattern[p])) {
-        // need to parse capture group as a new subexpression (handle recursively)
+        // need to parse capture group as a new subexpression (handle
+        // recursively)
         const auto offset = p + 1;
         // const auto end = pattern.find(')', offset);
         // const auto characters = pattern.substr(offset, end - offset);
         int word_offset = 0;
         capture_group_t capture_group;
-        // instead of searching for | characters, look for matching closing brace
-        std::string subpattern;
+        // instead of searching for | characters, look for matching closing
+        // brace
         int depth = 0;
-        for (int i = offset, size = 0;;size++) {
+        for (int i = offset, size = 0;; size++, i++) {
           if (pattern[i] == '(') {
             depth++;
           }
           if (pattern[i] == ')') {
             if (depth == 0) {
-              subpattern = pattern.substr(offset, size);
+              capture_group.pattern = pattern.substr(offset, size);
+              break;
             } else {
               depth--;
             }
@@ -246,7 +252,8 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
         //   if (const auto split = characters.find('|', word_offset);
         //       split != std::string::npos) {
         //     capture_group.words.push_back(
-        //       std::string(characters.substr(word_offset, split - word_offset)));
+        //       std::string(characters.substr(word_offset, split -
+        //       word_offset)));
         //     word_offset = split + 1;
         //   } else {
         //     capture_group.words.push_back(
@@ -255,7 +262,7 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
         //   }
         // }
         // p += characters.size() + 2;
-        p += subpattern.size() + 2;
+        p += capture_group.pattern.size() + 2;
         pattern_tokens.push_back(std::move(capture_group));
       }
     }
@@ -323,18 +330,16 @@ std::optional<match_result_t> do_match(
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](capture_group_t& capture_group) {
-        // for (const auto& word : capture_group.words) {
-          auto pattern = parse_pattern(capture_group.pattern);
-          if (
-            auto next_match = matcher_internal(
-              input, input_pos, pattern, 0, anchors_for_subpattern(),
-              capture_groups)) {
-            capture_group.matched = std::string(
-              input.begin() + next_match->start,
-              input.begin() + input_pos + next_match->move);
-            return next_match;
-          }
-        // }
+        auto pattern = parse_pattern(capture_group.pattern);
+        if (
+          auto next_match = matcher_internal(
+            input, input_pos, pattern, 0, anchors_for_subpattern(),
+            capture_groups)) {
+          capture_group.matched = std::string(
+            input.begin() + next_match->start,
+            input.begin() + input_pos + next_match->move);
+          return next_match;
+        }
         return std::optional<match_result_t>(std::nullopt);
       },
       [&](const wildcard_t& wildcard) {
@@ -464,7 +469,8 @@ std::optional<match_result_t> matcher(
 std::vector<capture_group_t*> get_capture_groups(
   std::span<pattern_token_t> parsed_pattern) {
   return std::accumulate(
-    parsed_pattern.begin(), parsed_pattern.end(), std::vector<capture_group_t*>{},
+    parsed_pattern.begin(), parsed_pattern.end(),
+    std::vector<capture_group_t*>{},
     [](std::vector<capture_group_t*> acc, pattern_token_t& pattern_token) {
       if (std::holds_alternative<capture_group_t>(pattern_token)) {
         acc.push_back(std::get_if<capture_group_t>(&pattern_token));
@@ -477,6 +483,15 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  {
+    auto parsed_pattern = parse_pattern("(a(pp)le) (\\w+)");
+    auto capture_groups = get_capture_groups(parsed_pattern);
+    auto res = matcher(
+      "pineapple pie, pineapple and pie", parsed_pattern, capture_groups);
+    int test;
+    test = 0;
+  }
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
