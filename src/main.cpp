@@ -6,8 +6,32 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
+
+template<class T>
+void hash_combine(std::size_t& seed, const T& v) {
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+struct pair_hash_t {
+  size_t operator()(const std::pair<uint64_t, uint64_t>& p) const {
+    size_t seed = 0;
+    hash_combine(seed, p.first);
+    hash_combine(seed, p.second);
+    return seed;
+  }
+};
+
+struct pair_equals_t {
+  size_t operator()(
+    const std::pair<uint64_t, uint64_t>& lhs,
+    const std::pair<uint64_t, uint64_t>& rhs) const {
+    return lhs.first == rhs.first && lhs.second == rhs.second;
+  }
+};
 
 template<class... Ts>
 struct overloaded : Ts... {
@@ -268,11 +292,16 @@ struct match_result_t {
   int move;
 };
 
+using cache_t = std::unordered_map<
+  std::pair<int, int>, std::optional<match_result_t>, pair_hash_t,
+  pair_equals_t>;
+
 // forward declaration
 std::optional<match_result_t> matcher_internal(
   std::string_view input, const int input_pos,
   std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<const capture_group_t*> capture_groups);
+  const uint32_t anchors, std::span<const capture_group_t*> capture_groups,
+  cache_t& cache);
 
 std::optional<match_result_t> do_match(
   std::span<pattern_token_t> pattern, const int pattern_pos,
@@ -320,10 +349,11 @@ std::optional<match_result_t> do_match(
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](capture_group_t& capture_group) {
+        cache_t cache;
         if (
           auto next_match = matcher_internal(
             input, input_pos, *capture_group.pattern, 0,
-            anchors_for_subpattern(), captured_groups)) {
+            anchors_for_subpattern(), captured_groups, cache)) {
           capture_group.match = std::string(
             input.begin() + next_match->start,
             input.begin() + input_pos + next_match->move);
@@ -336,6 +366,7 @@ std::optional<match_result_t> do_match(
           match_result_t{.start = input_pos, .move = 1});
       },
       [&](const backreference_t& backreference) {
+        cache_t cache;
         if (int capture_group_index = backreference.number - 1;
             capture_group_index < captured_groups.size()) {
           auto match =
@@ -343,7 +374,7 @@ std::optional<match_result_t> do_match(
           if (
             auto next_match = matcher_internal(
               input, input_pos, match, 0, anchors_for_subpattern(),
-              captured_groups)) {
+              captured_groups, cache)) {
             return next_match;
           }
         }
@@ -361,7 +392,8 @@ std::optional<match_result_t> do_match(
 std::optional<match_result_t> matcher_internal(
   const std::string_view input, const int input_pos,
   std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<const capture_group_t*> captured_groups) {
+  const uint32_t anchors, std::span<const capture_group_t*> captured_groups,
+  cache_t& cache) {
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
       return input_pos == input.size()
@@ -377,69 +409,75 @@ std::optional<match_result_t> matcher_internal(
            ? std::make_optional(match_result_t{.start = input_pos, .move = 0})
            : std::optional<match_result_t>(std::nullopt);
   }
-  return do_match(
-           pattern, pattern_pos, input, input_pos, anchors, captured_groups)
-    .and_then([&](match_result_t match_result) {
-      if (quantifier == quantifier_e::one_or_more) {
-        // try to match more of the pattern (greedy)
-        if (
-          const auto match = matcher_internal(
-                               input, input_pos + 1, pattern, pattern_pos,
-                               anchors, captured_groups)
-                               .transform([&](match_result_t match) {
-                                 match.start =
-                                   std::min(match_result.start, match.start);
-                                 match.move += 1;
-                                 return match;
-                               })) {
-          return match;
+  if (auto it = cache.find({input_pos, pattern_pos}); it != cache.end()) {
+    return it->second;
+  }
+  const auto result =
+    do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups)
+      .and_then([&](match_result_t match_result) {
+        if (quantifier == quantifier_e::one_or_more) {
+          // try to match more of the pattern (greedy)
+          if (
+            const auto match = matcher_internal(
+                                 input, input_pos + 1, pattern, pattern_pos,
+                                 anchors, captured_groups, cache)
+                                 .transform([&](match_result_t match) {
+                                   match.start =
+                                     std::min(match_result.start, match.start);
+                                   match.move += 1;
+                                   return match;
+                                 })) {
+            return match;
+          }
         }
-      }
-      return matcher_internal(
-               input, input_pos + match_result.move, pattern, pattern_pos + 1,
-               anchors, captured_groups)
-        .transform([&](match_result_t match) {
-          match.start = std::min(match_result.start, match.start);
-          match.move += match_result.move;
-          return match;
-        })
-        .or_else([&] {
-          // backtrack
+        return matcher_internal(
+                 input, input_pos + match_result.move, pattern, pattern_pos + 1,
+                 anchors, captured_groups, cache)
+          .transform([&](match_result_t match) {
+            match.start = std::min(match_result.start, match.start);
+            match.move += match_result.move;
+            return match;
+          })
+          .or_else([&] {
+            // backtrack
+            return matcher_internal(
+                     input, input_pos + match_result.move, pattern, 0, anchors,
+                     captured_groups, cache)
+              .transform([&](match_result_t match) {
+                match.start = std::min(match_result.start, match.start);
+                match.move += match_result.move;
+                return match;
+              });
+          });
+      })
+      .or_else([&] {
+        if (quantifier == quantifier_e::one_or_more) {
+          // no match at current position
+          return std::optional<match_result_t>(std::nullopt);
+        } else if (quantifier == quantifier_e::zero_or_one) {
           return matcher_internal(
-                   input, input_pos + match_result.move, pattern, 0, anchors,
-                   captured_groups)
+                   input, input_pos, pattern, pattern_pos + 1, anchors,
+                   captured_groups, cache)
             .transform([&](match_result_t match) {
-              match.start = std::min(match_result.start, match.start);
-              match.move += match_result.move;
+              match.move += 1;
               return match;
             });
-        });
-    })
-    .or_else([&] {
-      if (quantifier == quantifier_e::one_or_more) {
-        // no match at current position
-        return std::optional<match_result_t>(std::nullopt);
-      } else if (quantifier == quantifier_e::zero_or_one) {
-        return matcher_internal(
-                 input, input_pos, pattern, pattern_pos + 1, anchors,
-                 captured_groups)
-          .transform([&](match_result_t match) {
-            match.move += 1;
-            return match;
-          });
-      }
-      // backtrack
-      if ((anchors & anchor_e::begin) == 0) {
-        return matcher_internal(
-                 input, input_pos + 1, pattern, 0, anchors, captured_groups)
-          .transform([&](match_result_t match) {
-            match.move += 1;
-            return match;
-          });
-      } else {
-        return std::optional<match_result_t>(std::nullopt);
-      }
-    });
+        }
+        // backtrack
+        if ((anchors & anchor_e::begin) == 0) {
+          return matcher_internal(
+                   input, input_pos + 1, pattern, 0, anchors, captured_groups,
+                   cache)
+            .transform([&](match_result_t match) {
+              match.move += 1;
+              return match;
+            });
+        } else {
+          return std::optional<match_result_t>(std::nullopt);
+        }
+      });
+  cache.insert({{input_pos, pattern_pos}, result});
+  return result;
 }
 
 std::optional<match_result_t> matcher(
@@ -455,7 +493,8 @@ std::optional<match_result_t> matcher(
     p = p | std::views::take(p.size() - 1);
     anchors |= anchor_e::end;
   }
-  return matcher_internal(input, 0, p, 0, anchors, captured_groups);
+  cache_t cache;
+  return matcher_internal(input, 0, p, 0, anchors, captured_groups, cache);
 }
 
 std::vector<const capture_group_t*> get_capture_groups(
