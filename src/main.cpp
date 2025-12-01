@@ -102,7 +102,7 @@ struct capture_group_t {
     literal_t, digit_t, word_t, positive_character_group_t,
     negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
     capture_group_t, backreference_t>>>
-    capture;
+    pattern;
   std::string match;
 
   std::optional<quantifier_e> quantifier;
@@ -243,7 +243,7 @@ std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
           if (pattern[i] == ')') {
             if (nesting_depth == 0) {
               sub_pattern = pattern.substr(offset, size);
-              capture_group.capture =
+              capture_group.pattern =
                 std::make_unique<std::vector<pattern_token_t>>(
                   parse_pattern(sub_pattern));
               break;
@@ -320,10 +320,9 @@ std::optional<match_result_t> do_match(
                : std::optional<match_result_t>(std::nullopt);
       },
       [&](capture_group_t& capture_group) {
-        // auto pattern = parse_pattern(capture_group.pattern);
         if (
           auto next_match = matcher_internal(
-            input, input_pos, *capture_group.capture, 0,
+            input, input_pos, *capture_group.pattern, 0,
             anchors_for_subpattern(), captured_groups)) {
           capture_group.match = std::string(
             input.begin() + next_match->start,
@@ -469,7 +468,7 @@ std::vector<const capture_group_t*> get_capture_groups(
       const pattern_token_t& pattern_token) {
       if (std::holds_alternative<capture_group_t>(pattern_token)) {
         auto* capture_group = std::get_if<capture_group_t>(&pattern_token);
-        auto sub_capture_groups = get_capture_groups(*capture_group->capture);
+        auto sub_capture_groups = get_capture_groups(*capture_group->pattern);
         acc.push_back(capture_group);
         acc.insert(
           acc.end(), sub_capture_groups.begin(), sub_capture_groups.end());
