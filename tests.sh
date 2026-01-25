@@ -295,6 +295,9 @@ if [ $? -ne 0 ]; then
   echo "test failed - cat cat and cat cat."
 fi
 
+# "grep yes is doing grep yes times, and again grep yes times"
+# "((\w\w\w\w) (\d\d\d)) is doing \2 \3 times, and again \1 times"
+
 # nesting not currently supported
 # echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
 # if [ $? -ne 0 ]; then

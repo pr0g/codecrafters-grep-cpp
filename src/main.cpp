@@ -522,6 +522,34 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
+  // {
+  //   auto parsed_pattern =
+  //     // parse_pattern("(([abc]+)-([def]+)) is \\1, not ([^xyz])+, \\2, or
+  //     // \\3");
+  //     parse_pattern(
+  //       "(([abc]+)-([def]+)) is \\1, not ([^xyz]+), \\2, or \\3 or \\4");
+  //   auto capture_groups = get_capture_groups(parsed_pattern);
+  //   auto res = matcher(
+  //     "abc-def is abc-def, not efg, abc, or def or efg", parsed_pattern,
+  //     capture_groups);
+  //   if (res) {
+  //     std::cout << res->move << '\n';
+  //   }
+  //   int test;
+  //   test = 0;
+  // }
+
+  {
+    auto parsed_pattern = parse_pattern("not ([^xyz]+),");
+    auto capture_groups = get_capture_groups(parsed_pattern);
+    auto res = matcher("not efg, abc, or def", parsed_pattern, capture_groups);
+    if (res) {
+      std::cout << res->move << '\n';
+    }
+    int test;
+    test = 0;
+  }
+
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
     return 1;
