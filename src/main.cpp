@@ -141,7 +141,8 @@ using pattern_token_t = std::variant<
   negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
   capture_group_t, backreference_t>;
 
-void set_quantifier(pattern_token_t& pattern_token, quantifier_e quantifier) {
+void set_quantifier(
+  pattern_token_t& pattern_token, const quantifier_e quantifier) {
   std::visit(
     overloaded{
       [&](literal_t& literal) { literal.quantifier = quantifier; },
@@ -414,19 +415,19 @@ std::optional<match_result_t> matcher_internal(
   }
   const auto result =
     do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups)
-      .and_then([&](match_result_t match_result) {
+      .and_then([&](const match_result_t match_result) {
         if (quantifier == quantifier_e::one_or_more) {
           // try to match more of the pattern (greedy)
-          if (
-            const auto match = matcher_internal(
-                                 input, input_pos + 1, pattern, pattern_pos,
-                                 anchors, captured_groups, cache)
-                                 .transform([&](match_result_t match) {
-                                   match.start =
-                                     std::min(match_result.start, match.start);
-                                   match.move += 1;
-                                   return match;
-                                 })) {
+          if (const auto match =
+                matcher_internal(
+                  input, input_pos + 1, pattern, pattern_pos, anchors,
+                  captured_groups, cache)
+                  .transform([&](match_result_t match) {
+                    match.start = std::min(match_result.start, match.start);
+                    match.move += 1;
+                    return match;
+                  });
+              match.has_value()) {
             return match;
           }
         }
