@@ -33,11 +33,6 @@ struct pair_equals_t {
   }
 };
 
-template<class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
-};
-
 bool is_literal(const char c) {
   // todo - more regex meta characters to add
   return c != '\\' && c != '[' && c != '(';
@@ -141,59 +136,50 @@ using pattern_token_t = std::variant<
   negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
   capture_group_t, backreference_t>;
 
-void set_quantifier(
-  pattern_token_t& pattern_token, const quantifier_e quantifier) {
-  std::visit(
-    overloaded{
-      [&](literal_t& literal) { literal.quantifier = quantifier; },
-      [&](digit_t& digit) { digit.quantifier = quantifier; },
-      [&](word_t& word) { word.quantifier = quantifier; },
-      [&](negative_character_group_t& negative_character_group) {
-        negative_character_group.quantifier = quantifier;
-      },
-      [&](positive_character_group_t& positive_character_group) {
-        positive_character_group.quantifier = quantifier;
-      },
-      [&](capture_group_t& capture_group) {
-        capture_group.quantifier = quantifier;
-      },
-      [&](wildcard_t& wildcard) { wildcard.quantifier = quantifier; },
-      [&](backreference_t& backreference) {
-        backreference.quantifier = quantifier;
-      },
-      [&](begin_anchor_t& begin_anchor) { /* noop */ },
-      [&](end_anchor_t& end_anchor) { /* noop */ },
-    },
-    pattern_token);
+void set_quantifier(pattern_token_t& token, const quantifier_e quantifier) {
+  if (auto* p = std::get_if<literal_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<digit_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<word_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<negative_character_group_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<positive_character_group_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<capture_group_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<wildcard_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (auto* p = std::get_if<backreference_t>(&token)) {
+    p->quantifier = quantifier;
+  } else if (std::holds_alternative<begin_anchor_t>(token)) {
+    // noop
+  } else if (std::holds_alternative<end_anchor_t>(token)) {
+    // noop
+  }
 }
 
-std::optional<quantifier_e> get_quantifier(
-  const pattern_token_t& pattern_token) {
-  return std::visit(
-    overloaded{
-      [&](const literal_t& literal) { return literal.quantifier; },
-      [&](const digit_t& digit) { return digit.quantifier; },
-      [&](const word_t& word) { return word.quantifier; },
-      [&](const negative_character_group_t& negative_character_group) {
-        return negative_character_group.quantifier;
-      },
-      [&](const positive_character_group_t& positive_character_group) {
-        return positive_character_group.quantifier;
-      },
-      [&](const capture_group_t& capture_group) {
-        return capture_group.quantifier;
-      },
-      [&](const wildcard_t& wildcard) { return wildcard.quantifier; },
-      [&](const backreference_t& backreference) {
-        return backreference.quantifier;
-      },
-      [&](const begin_anchor_t& begin_anchor) {
-        return std::optional<quantifier_e>(std::nullopt);
-      },
-      [&](const end_anchor_t& end_anchor) {
-        return std::optional<quantifier_e>(std::nullopt);
-      }},
-    pattern_token);
+std::optional<quantifier_e> get_quantifier(const pattern_token_t& token) {
+  if (auto* p = std::get_if<literal_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<digit_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<word_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<negative_character_group_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<positive_character_group_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<capture_group_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<wildcard_t>(&token)) {
+    return p->quantifier;
+  } else if (auto* p = std::get_if<backreference_t>(&token)) {
+    return p->quantifier;
+  }
+  // begin_anchor_t or end_anchor_t
+  return std::nullopt;
 }
 
 std::vector<pattern_token_t> parse_pattern(const std::string_view pattern) {
@@ -318,76 +304,63 @@ std::optional<match_result_t> do_match(
     }
     return 0;
   };
-  return std::visit(
-    overloaded{
-      [&](const literal_t& l) {
-        return l.l == c ? std::make_optional(
-                            match_result_t{.start = input_pos, .move = 1})
-                        : std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const digit_t& digit) {
-        return std::isdigit(c)
-               ? std::make_optional(
-                   match_result_t{.start = input_pos, .move = 1})
-               : std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const word_t& word) {
-        return std::isalnum(c) || c == '_'
-               ? std::make_optional(
-                   match_result_t{.start = input_pos, .move = 1})
-               : std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const negative_character_group_t& negative_character_group) {
-        return negative_character_group.group.find(c) == std::string::npos
-               ? std::make_optional(
-                   match_result_t{.start = input_pos, .move = 1})
-               : std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const positive_character_group_t& positive_character_group) {
-        return positive_character_group.group.find(c) != std::string::npos
-               ? std::make_optional(
-                   match_result_t{.start = input_pos, .move = 1})
-               : std::optional<match_result_t>(std::nullopt);
-      },
-      [&](capture_group_t& capture_group) {
-        cache_t cache;
-        if (
-          auto next_match = matcher_internal(
-            input, input_pos, *capture_group.pattern, 0,
-            anchors_for_subpattern(), captured_groups, cache)) {
-          capture_group.match = std::string(
-            input.begin() + next_match->start,
-            input.begin() + input_pos + next_match->move);
-          return next_match;
-        }
-        return std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const wildcard_t& wildcard) {
-        return std::make_optional(
-          match_result_t{.start = input_pos, .move = 1});
-      },
-      [&](const backreference_t& backreference) {
-        cache_t cache;
-        if (int capture_group_index = backreference.number - 1;
-            capture_group_index < captured_groups.size()) {
-          auto match =
-            parse_pattern(captured_groups[capture_group_index]->match);
-          if (
-            auto next_match = matcher_internal(
-              input, input_pos, match, 0, anchors_for_subpattern(),
-              captured_groups, cache)) {
-            return next_match;
-          }
-        }
-        return std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const begin_anchor_t& begin_anchor) {
-        return std::optional<match_result_t>(std::nullopt);
-      },
-      [&](const end_anchor_t& end_anchor) {
-        return std::optional<match_result_t>(std::nullopt);
-      }},
-    pattern[pattern_pos]);
+  auto& token = pattern[pattern_pos];
+  if (auto* l = std::get_if<literal_t>(&token)) {
+    if (l->l == c) {
+      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    }
+    return std::nullopt;
+  } else if (auto* digit = std::get_if<digit_t>(&token)) {
+    if (std::isdigit(static_cast<unsigned char>(c))) {
+      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    }
+    return std::nullopt;
+  } else if (auto* word = std::get_if<word_t>(&token)) {
+    if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
+      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    }
+    return std::nullopt;
+  } else if (auto* neg = std::get_if<negative_character_group_t>(&token)) {
+    if (neg->group.find(c) == std::string::npos) {
+      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    }
+    return std::nullopt;
+  } else if (auto* pos = std::get_if<positive_character_group_t>(&token)) {
+    if (pos->group.find(c) != std::string::npos) {
+      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    }
+    return std::nullopt;
+  } else if (auto* capture = std::get_if<capture_group_t>(&token)) {
+    cache_t cache;
+    if (
+      auto next_match = matcher_internal(
+        input, input_pos, *capture->pattern, 0, anchors_for_subpattern(),
+        captured_groups, cache)) {
+      capture->match = std::string(
+        input.begin() + next_match->start,
+        input.begin() + input_pos + next_match->move);
+      return next_match;
+    }
+    return std::nullopt;
+  } else if (std::get_if<wildcard_t>(&token)) {
+    return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+  } else if (auto* backreference = std::get_if<backreference_t>(&token)) {
+    cache_t cache;
+    int capture_group_index = backreference->number - 1;
+    if (capture_group_index < static_cast<int>(captured_groups.size())) {
+      auto match = parse_pattern(captured_groups[capture_group_index]->match);
+      if (
+        auto next_match = matcher_internal(
+          input, input_pos, match, 0, anchors_for_subpattern(), captured_groups,
+          cache)) {
+        return next_match;
+      }
+    }
+
+    return std::nullopt;
+  }
+  // begin_anchor_t or end_anchor_t
+  return std::nullopt;
 }
 
 std::optional<match_result_t> matcher_internal(
