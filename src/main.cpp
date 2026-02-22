@@ -356,11 +356,43 @@ std::optional<match_result_t> do_match(
         return next_match;
       }
     }
-
     return std::nullopt;
   }
   // begin_anchor_t or end_anchor_t
   return std::nullopt;
+}
+
+std::optional<int> do_match_2(
+  std::span<pattern_token_t> pattern, const int pattern_pos,
+  std::string_view input, const int input_pos, const uint32_t anchors,
+  std::span<const capture_group_t*> captured_groups) {
+  return do_match(
+           pattern, pattern_pos, input, input_pos, anchors, captured_groups)
+    .transform([](const auto match_result) { return match_result.move; });
+}
+
+std::optional<int> match_here(
+  const std::string_view input, const int input_pos,
+  std::span<pattern_token_t> pattern, const int pattern_pos,
+  const uint32_t anchors) {
+  // base case
+  if (pattern_pos == pattern.size()) {
+    return 0;
+  }
+  // base case
+  if (input_pos == input.size()) {
+    return std::nullopt;
+  }
+  auto move = do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
+  if (!move) {
+    return std::nullopt;
+  }
+  std::optional<int> next =
+    match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
+  if (!next) {
+    return std::nullopt;
+  }
+  return *next + *move;
 }
 
 std::optional<match_result_t> matcher_internal(
@@ -466,8 +498,13 @@ std::optional<match_result_t> matcher(
     p = p | std::views::take(p.size() - 1);
     anchors |= anchor_e::end;
   }
-  cache_t cache;
-  return matcher_internal(input, 0, p, 0, anchors, captured_groups, cache);
+  for (int i = 0; i < input.size(); i++) {
+    auto result = match_here(input, i, pattern, 0, anchors);
+    if (result) {
+      return match_result_t{.start = i, .move = *result};
+    }
+  }
+  return std::nullopt;
 }
 
 std::vector<const capture_group_t*> get_capture_groups(
@@ -511,16 +548,28 @@ int main(int argc, char* argv[]) {
   //   test = 0;
   // }
 
-  {
-    auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-    auto capture_groups = get_capture_groups(parsed_pattern);
-    auto res = matcher("not efg, abc, or def", parsed_pattern, capture_groups);
-    if (res) {
-      std::cout << res->move << '\n';
-    }
-    int test;
-    test = 0;
-  }
+  // {
+  //   auto parsed_pattern = parse_pattern("not ([^xyz]+),");
+  //   auto capture_groups = get_capture_groups(parsed_pattern);
+  //   auto res = matcher("not efg, abc, or def", parsed_pattern,
+  //   capture_groups); if (res) {
+  //     std::cout << res->move << '\n';
+  //   }
+  //   int test;
+  //   test = 0;
+  // }
+
+  // {
+  //   const std::string input = "orangeq\\";
+  //   auto parsed_pattern = parse_pattern("[^opq]q\\\\");
+  //   auto capture_groups = get_capture_groups(parsed_pattern);
+  //   auto res = matcher(input, parsed_pattern, capture_groups);
+  //   if (res) {
+  //     std::cerr << input.substr(res->start, res->move) << '\n';
+  //   }
+  //   int test;
+  //   test = 0;
+  // }
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -535,17 +584,18 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string input_line;
-  std::getline(std::cin, input_line);
+  std::string input;
+  std::getline(std::cin, input);
 
   try {
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
-    if (auto match = matcher(input_line, parsed_pattern, capture_groups)) {
+    if (auto match = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
       // std::cerr << input_line.substr(match->start, match->move -
       // match->start)
       //           << '\n';
+      // std::cerr << input.substr(match->start, match->move) << '\n';
       return 0;
     } else {
       return 1;
