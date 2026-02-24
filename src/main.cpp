@@ -489,19 +489,20 @@ std::optional<match_result_t> matcher(
   std::string_view input, std::span<pattern_token_t> pattern,
   std::span<const capture_group_t*> captured_groups) {
   uint32_t anchors = 0;
-  auto p = pattern;
   if (std::holds_alternative<begin_anchor_t>(pattern.front())) {
-    p = p | std::views::drop(1);
+    pattern = pattern | std::views::drop(1);
     anchors |= anchor_e::begin;
   }
   if (std::holds_alternative<end_anchor_t>(pattern.back())) {
-    p = p | std::views::take(p.size() - 1);
+    pattern = pattern | std::views::take(pattern.size() - 1);
     anchors |= anchor_e::end;
   }
   for (int i = 0; i < input.size(); i++) {
     auto result = match_here(input, i, pattern, 0, anchors);
     if (result) {
       return match_result_t{.start = i, .move = *result};
+    } else if ((anchors & anchor_e::begin) != 0) {
+      break;
     }
   }
   return std::nullopt;
@@ -559,17 +560,17 @@ int main(int argc, char* argv[]) {
   //   test = 0;
   // }
 
-  // {
-  //   const std::string input = "orangeq\\";
-  //   auto parsed_pattern = parse_pattern("[^opq]q\\\\");
-  //   auto capture_groups = get_capture_groups(parsed_pattern);
-  //   auto res = matcher(input, parsed_pattern, capture_groups);
-  //   if (res) {
-  //     std::cerr << input.substr(res->start, res->move) << '\n';
-  //   }
-  //   int test;
-  //   test = 0;
-  // }
+  {
+    const std::string input = "orange_pear";
+    auto parsed_pattern = parse_pattern("^orange");
+    auto capture_groups = get_capture_groups(parsed_pattern);
+    auto res = matcher(input, parsed_pattern, capture_groups);
+    // if (res) {
+    //   std::cerr << input.substr(res->start, res->move) << '\n';
+    // }
+    int test;
+    test = 0;
+  }
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;

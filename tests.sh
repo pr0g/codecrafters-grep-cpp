@@ -25,20 +25,20 @@ if [ $? -ne 0 ]; then
   echo "test failed - apple"
 fi
 
-# echo -n "colour" | build/Debug/grep -E "colou?r" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - colour"
-# fi
+echo -n "colour" | build/Debug/grep -E "colou?r" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - colour"
+fi
 
-# echo -n 'apple' | build/Debug/grep -E '[^abc]' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - apple"
-# fi
+echo -n 'apple' | build/Debug/grep -E '[^abc]' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - apple"
+fi
 
-# echo -n 'banana' | build/Debug/grep -E '[^anb]' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - banana"
-# fi
+echo -n 'banana' | build/Debug/grep -E '[^anb]' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - banana"
+fi
 
 echo -n 'blueberry' | build/Debug/grep -E '[acdfghijk]' # 1
 if [ $? -ne 1 ]; then
@@ -55,45 +55,45 @@ if [ $? -ne 0 ]; then
   echo "test failed - orangeq\\"
 fi
 
-# echo -n 'orange_pear' | build/Debug/grep -E '^orange' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - orange_pear"
-# fi
+echo -n 'orange_pear' | build/Debug/grep -E '^orange' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - orange_pear"
+fi
 
-# echo -n 'pear_orange' | build/Debug/grep -E '^orange' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - pear_orange"
-# fi
+echo -n 'pear_orange' | build/Debug/grep -E '^orange' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - pear_orange"
+fi
 
-# echo -n "helloa123" | build/Debug/grep -E "a\d+" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - helloa123"
-# fi
+echo -n "helloa123" | build/Debug/grep -E "a\d+" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - helloa123"
+fi
 
-# echo -n 'sally has 3 dogs' | build/Debug/grep -E '\d \w\w\ws' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - sally has 3 dogs"
-# fi
+echo -n 'sally has 3 dogs' | build/Debug/grep -E '\d \w\w\ws' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - sally has 3 dogs"
+fi
 
-# echo -n 'sally has 1 dog' | build/Debug/grep -E '\d \w\w\ws' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - sally has 1 dog"
-# fi
+echo -n 'sally has 1 dog' | build/Debug/grep -E '\d \w\w\ws' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - sally has 1 dog"
+fi
 
 # echo -n "a123123123123" | build/Debug/grep -E "a[123]+123" # 0
 # if [ $? -ne 0 ]; then
 #   echo "test failed - a123123123123"
 # fi
 
-# echo -n "aaaxbbbacy" | build/Debug/grep -E "a123$" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - aaaxbbbacy"
-# fi
+echo -n "aaaxbbbacy" | build/Debug/grep -E "a123$" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - aaaxbbbacy"
+fi
 
-# echo -n 'pineapple_pear' | build/Debug/grep -E 'pear$' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - pineapple_pear"
-# fi
+echo -n 'pineapple_pear' | build/Debug/grep -E 'pear$' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - pineapple_pear"
+fi
 
 # echo -n 'pear_pineapple' | build/Debug/grep -E 'pear$' # 1
 # if [ $? -ne 1 ]; then
