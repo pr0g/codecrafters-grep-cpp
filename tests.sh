@@ -80,10 +80,10 @@ if [ $? -ne 1 ]; then
   echo "test failed - sally has 1 dog"
 fi
 
-# echo -n "a123123123123" | build/Debug/grep -E "a[123]+123" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - a123123123123"
-# fi
+echo -n "a123123123123" | build/Debug/grep -E "a[123]+123" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - a123123123123"
+fi
 
 echo -n "aaaxbbbacy" | build/Debug/grep -E "a123$" # 1
 if [ $? -ne 1 ]; then

@@ -383,12 +383,21 @@ std::optional<int> match_here(
   if (input_pos == input.size()) {
     return std::nullopt;
   }
+  const auto quantifier = get_quantifier(pattern[pattern_pos]);
   auto move = do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
   if (!move) {
     return std::nullopt;
   }
-  std::optional<int> next =
-    match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
+  std::optional<int> next;
+  if (quantifier == quantifier_e::one_or_more) {
+    next = match_here(input, input_pos + *move, pattern, pattern_pos, anchors);
+    if (!next) {
+      next = match_here(input, input_pos, pattern, pattern_pos + 1, anchors);
+    }
+  } else {
+    next =
+      match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
+  }
   if (!next) {
     return std::nullopt;
   }
@@ -498,8 +507,7 @@ std::optional<match_result_t> matcher(
     anchors |= anchor_e::end;
   }
   for (int i = 0; i < input.size(); i++) {
-    auto result = match_here(input, i, pattern, 0, anchors);
-    if (result) {
+    if (auto result = match_here(input, i, pattern, 0, anchors)) {
       return match_result_t{.start = i, .move = *result};
     } else if ((anchors & anchor_e::begin) != 0) {
       break;
@@ -561,13 +569,13 @@ int main(int argc, char* argv[]) {
   // }
 
   {
-    const std::string input = "orange_pear";
-    auto parsed_pattern = parse_pattern("^orange");
+    const std::string input = "a123123123123";
+    auto parsed_pattern = parse_pattern("a[123]+123");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
-    // if (res) {
-    //   std::cerr << input.substr(res->start, res->move) << '\n';
-    // }
+    if (res) {
+      // std::cerr << input.substr(res->start, res->move) << '\n';
+    }
     int test;
     test = 0;
   }
