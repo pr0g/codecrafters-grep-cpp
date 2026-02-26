@@ -397,11 +397,8 @@ std::optional<int> match_here(
     if (!next) {
       next = match_here(input, input_pos, pattern, pattern_pos + 1, anchors);
     }
-    if (!next) {
-      next =
-        match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
-    }
-  } else {
+  }
+  if (!next) {
     next =
       match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
   }
