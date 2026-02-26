@@ -397,6 +397,10 @@ std::optional<int> match_here(
     if (!next) {
       next = match_here(input, input_pos, pattern, pattern_pos + 1, anchors);
     }
+    if (!next) {
+      next =
+        match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
+    }
   } else {
     next =
       match_here(input, input_pos + *move, pattern, pattern_pos + 1, anchors);
@@ -572,8 +576,8 @@ int main(int argc, char* argv[]) {
   // }
 
   {
-    const std::string input = "a123123123123";
-    auto parsed_pattern = parse_pattern("a[123]+123");
+    const std::string input = "abc_123_xyz";
+    auto parsed_pattern = parse_pattern("^abc_\\d+_xyz$");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
     if (res) {

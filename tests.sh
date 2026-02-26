@@ -100,45 +100,45 @@ if [ $? -ne 1 ]; then
   echo "test failed - pear_pineapple"
 fi
 
-# echo -n 'banana_banana' | build/Debug/grep -E '^banana$' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - banana_banana"
-# fi
+echo -n 'banana_banana' | build/Debug/grep -E '^banana$' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - banana_banana"
+fi
 
-# echo -n "abcthisisabc" | build/Debug/grep -E "^abc" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - abcthisisabc"
-# fi
+echo -n "abcthisisabc" | build/Debug/grep -E "^abc" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - abcthisisabc"
+fi
 
-# echo -n "thisisajvm" | build/Debug/grep -E "^[jmav]+" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - thisisajvm"
-# fi
+echo -n "thisisajvm" | build/Debug/grep -E "^[jmav]+" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - thisisajvm"
+fi
 
-# echo -n "thisisnotthis" | build/Debug/grep -E "this$" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - thisisnotthis"
-# fi
+echo -n "thisisnotthis" | build/Debug/grep -E "this$" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - thisisnotthis"
+fi
 
-# echo -n "caaars" | build/Debug/grep -E "ca+aars" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - caaars"
-# fi
+echo -n "caaars" | build/Debug/grep -E "ca+aars" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - caaars"
+fi
 
-# echo -n "dog" | build/Debug/grep -E "d" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - dog"
-# fi
+echo -n "dog" | build/Debug/grep -E "d" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - dog"
+fi
 
-# echo -n "strawberry" | build/Debug/grep -E "^strawberry$" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - strawberry"
-# fi
+echo -n "strawberry" | build/Debug/grep -E "^strawberry$" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - strawberry"
+fi
 
-# echo -n "abc_123_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - abc_123_xyz"
-# fi
+echo -n "abc_123_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - abc_123_xyz"
+fi
 
 # echo -n "abc_rst_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 1
 # if [ $? -ne 1 ]; then
