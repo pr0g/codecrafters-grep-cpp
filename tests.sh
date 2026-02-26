@@ -190,6 +190,11 @@ if [ $? -ne 1 ]; then
   echo "test failed - cag"
 fi
 
+echo -n "blue" | build/Debug/grep -E "red|blue|green" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - blue"
+fi
+
 # echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)" # 1
 # if [ $? -ne 1 ]; then
 #   echo "test failed - I like fish"
@@ -205,9 +210,9 @@ fi
 #   echo "test failed - I like  and parrots"
 # fi
 
-# echo -n "blue" | build/Debug/grep -E "(red|blue|green)" # 0
+# echo -n "green" | build/Debug/grep -E "(red|blue|green)" # 0
 # if [ $? -ne 0 ]; then
-#   echo "test failed - blue"
+#   echo "test failed - green"
 # fi
 
 # echo -n "doghouse" | build/Debug/grep -E "(cat|dog)" # 0
