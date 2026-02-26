@@ -95,10 +95,10 @@ if [ $? -ne 0 ]; then
   echo "test failed - pineapple_pear"
 fi
 
-# echo -n 'pear_pineapple' | build/Debug/grep -E 'pear$' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - pear_pineapple"
-# fi
+echo -n 'pear_pineapple' | build/Debug/grep -E 'pear$' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - pear_pineapple"
+fi
 
 # echo -n 'banana_banana' | build/Debug/grep -E '^banana$' # 1
 # if [ $? -ne 1 ]; then

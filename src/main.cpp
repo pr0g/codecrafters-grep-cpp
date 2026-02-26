@@ -377,6 +377,9 @@ std::optional<int> match_here(
   const uint32_t anchors) {
   // base case
   if (pattern_pos == pattern.size()) {
+    if ((anchors & anchor_e::end) != 0) {
+      return input_pos == input.size() ? std::make_optional(0) : std::nullopt;
+    }
     return 0;
   }
   // base case
