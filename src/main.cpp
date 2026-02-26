@@ -383,15 +383,20 @@ std::optional<int> match_here(
     return 0;
   }
   // base case
-  if (input_pos == input.size()) {
-    return std::nullopt;
-  }
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
-  auto move = do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
-  if (!move) {
-    return std::nullopt;
+  if (input_pos == input.size()) {
+    return quantifier == quantifier_e::zero_or_one ? std::make_optional(0)
+                                                   : std::nullopt;
   }
   std::optional<int> next;
+  auto move = do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
+  if (!move) {
+    if (quantifier == quantifier_e::zero_or_one) {
+      next = match_here(input, input_pos, pattern, pattern_pos + 1, anchors);
+    } else {
+      return std::nullopt;
+    }
+  }
   if (quantifier == quantifier_e::one_or_more) {
     next = match_here(input, input_pos + *move, pattern, pattern_pos, anchors);
     if (!next) {
@@ -501,6 +506,9 @@ std::optional<match_result_t> matcher_internal(
 std::optional<match_result_t> matcher(
   std::string_view input, std::span<pattern_token_t> pattern,
   std::span<const capture_group_t*> captured_groups) {
+  if (input.empty()) {
+    return match_result_t{.start = 0, .move = 0};
+  }
   uint32_t anchors = 0;
   if (std::holds_alternative<begin_anchor_t>(pattern.front())) {
     pattern = pattern | std::views::drop(1);
@@ -573,8 +581,8 @@ int main(int argc, char* argv[]) {
   // }
 
   {
-    const std::string input = "abc_123_xyz";
-    auto parsed_pattern = parse_pattern("^abc_\\d+_xyz$");
+    const std::string input = "act";
+    auto parsed_pattern = parse_pattern("ca?t");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
     if (res) {

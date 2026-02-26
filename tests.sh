@@ -140,55 +140,55 @@ if [ $? -ne 0 ]; then
   echo "test failed - abc_123_xyz"
 fi
 
-# echo -n "abc_rst_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - abc_123_xyz"
-# fi
+echo -n "abc_rst_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - abc_123_xyz"
+fi
 
-# echo -n "caabts" | build/Debug/grep -E "ca+abt" # 0 
-# if [ $? -ne 0 ]; then
-#   echo "test failed - caabts"
-# fi
+echo -n "caabts" | build/Debug/grep -E "ca+abt" # 0 
+if [ $? -ne 0 ]; then
+  echo "test failed - caabts"
+fi
 
-# echo -n 'cat' | build/Debug/grep -E 'ca+t' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - cat"
-# fi
+echo -n 'cat' | build/Debug/grep -E 'ca+t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat"
+fi
 
-# echo -n "" | build/Debug/grep -E "\d?" # 0 
-# if [ $? -ne 0 ]; then
-#   echo "test failed - \"\""
-# fi
+echo -n "" | build/Debug/grep -E "\d?" # 0 
+if [ $? -ne 0 ]; then
+  echo "test failed - \"\""
+fi
 
-# echo -n "dogs" | build/Debug/grep -E "dogs?" # 0 
-# if [ $? -ne 0 ]; then
-#   echo "test failed - dogs"
-# fi
+echo -n "dogs" | build/Debug/grep -E "dogs?" # 0 
+if [ $? -ne 0 ]; then
+  echo "test failed - dogs"
+fi
 
-# echo -n "dog" | build/Debug/grep -E "dogs?" # 0 
-# if [ $? -ne 0 ]; then
-#   echo "test failed - dog"
-# fi
+echo -n "dog" | build/Debug/grep -E "dogs?" # 0 
+if [ $? -ne 0 ]; then
+  echo "test failed - dog"
+fi
 
-# echo -n 'cat' | build/Debug/grep -E 'ca?t' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - cat"
-# fi
+echo -n 'cat' | build/Debug/grep -E 'ca?t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat"
+fi
 
-# echo -n 'act' | build/Debug/grep -E 'ca?t' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - act"
-# fi
+echo -n 'act' | build/Debug/grep -E 'ca?t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - act"
+fi
 
-# echo -n 'cat' | build/Debug/grep -E 'ca?a?t' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - cat (2)"
-# fi
+echo -n 'cat' | build/Debug/grep -E 'ca?a?t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat (2)"
+fi
 
-# echo -n 'cag' | build/Debug/grep -E 'ca?t' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - cag"
-# fi
+echo -n 'cag' | build/Debug/grep -E 'ca?t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - cag"
+fi
 
 # echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)" # 1
 # if [ $? -ne 1 ]; then
