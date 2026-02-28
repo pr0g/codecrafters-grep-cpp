@@ -195,65 +195,65 @@ if [ $? -ne 0 ]; then
   echo "test failed - blue"
 fi
 
-# echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - I like fish"
-# fi
+echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - I like fish"
+fi
 
-# echo -n "I like catsdogscatsdogs" | build/Debug/grep -E "I like (cats|dogs)+" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - I like catsdogscatsdogs"
-# fi
+echo -n "I like catsdogscatsdogs" | build/Debug/grep -E "I like (cats|dogs)+" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - I like catsdogscatsdogs"
+fi
 
-# echo -n "I like  and parrots" | build/Debug/grep -E "I like (cats|dogs)? and parrots" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - I like  and parrots"
-# fi
+echo -n "I like  and parrots" | build/Debug/grep -E "I like (cats|dogs)? and parrots" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - I like  and parrots"
+fi
 
-# echo -n "green" | build/Debug/grep -E "(red|blue|green)" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - green"
-# fi
+echo -n "green" | build/Debug/grep -E "(red|blue|green)" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - green"
+fi
 
-# echo -n "doghouse" | build/Debug/grep -E "(cat|dog)" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - doghouse"
-# fi
+echo -n "doghouse" | build/Debug/grep -E "(cat|dog)" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - doghouse"
+fi
 
-# echo -n "a cog" | build/Debug/grep -E "a (cat|dog)" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - a cog"
-# fi
+echo -n "a cog" | build/Debug/grep -E "a (cat|dog)" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - a cog"
+fi
 
-# echo -n "I see 1 cat" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - I see 1 cat"
-# fi
+echo -n "I see 1 cat" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - I see 1 cat"
+fi
 
-# echo -n "I see 2 dog3" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - I see 2 dog3"
-# fi
+echo -n "I see 2 dog3" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - I see 2 dog3"
+fi
 
-# echo -n "goøö0Ogol" | build/Debug/grep -E "g.+gol" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - goøö0Ogol"
-# fi
+echo -n "goøö0Ogol" | build/Debug/grep -E "g.+gol" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - goøö0Ogol"
+fi
 
-# echo -n "car" | build/Debug/grep -E "c.t" # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - car"
-# fi
+echo -n "car" | build/Debug/grep -E "c.t" # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - car"
+fi
 
-# echo -n "cat" | build/Debug/grep -E "c.t" # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - cat"
-# fi
+echo -n "cat" | build/Debug/grep -E "c.t" # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat"
+fi
 
-# echo -n 'gol' | build/Debug/grep -E 'g.+gol' # 1
-# if [ $? -ne 1 ]; then
-#   echo "test failed - gol"
-# fi
+echo -n 'gol' | build/Debug/grep -E 'g.+gol' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - gol"
+fi
 
 # echo -n 'cat and cat' | build/Debug/grep -E '(\w+) and \1' # 0
 # if [ $? -ne 0 ]; then
@@ -300,10 +300,10 @@ fi
 #   echo "test failed - pineapple pie, pineapple and pie."
 # fi
 
-# echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '(apple) (\w+)' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - pineapple pie, pineapple and pie."
-# fi
+echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '(apple) (\w+)' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - pineapple pie, pineapple and pie."
+fi
 
 # echo -n "'cat and cat' is the same as 'cat and cat'" | build/Debug/grep -E "('(cat) and \2') is the same as \1" # 0
 # if [ $? -ne 0 ]; then

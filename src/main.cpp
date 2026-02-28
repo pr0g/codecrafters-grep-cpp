@@ -121,11 +121,31 @@ struct end_anchor_t {};
 
 struct capture_group_t {
   // type matches pattern_token_t
-  // std::unique_ptr<std::vector<std::variant<
-  //   literal_t, digit_t, word_t, positive_character_group_t,
-  //   negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
-  //   capture_group_t, backreference_t>>>
-  //   pattern;
+  using internal_pattern_t = std::vector<std::vector<std::variant<
+    literal_t, digit_t, word_t, positive_character_group_t,
+    negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
+    capture_group_t, backreference_t>>>;
+  std::unique_ptr<internal_pattern_t> pattern;
+
+  capture_group_t() = default;
+  capture_group_t(const capture_group_t& capture_group)
+    : pattern(
+        capture_group.pattern
+          ? std::make_unique<internal_pattern_t>(*capture_group.pattern)
+          : nullptr),
+      quantifier(capture_group.quantifier) {
+  }
+  capture_group_t& operator=(const capture_group_t& capture_group) {
+    if (this != &capture_group) {
+      capture_group_t temp(capture_group);
+      pattern.swap(temp.pattern);
+    }
+    return *this;
+  }
+
+  capture_group_t(capture_group_t&&) noexcept = default;
+  capture_group_t& operator=(capture_group_t&&) noexcept = default;
+
   // std::string match;
 
   std::optional<quantifier_e> quantifier;
@@ -259,10 +279,10 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
           }
           if (pattern[i] == ')') {
             if (nesting_depth == 0) {
-              // sub_pattern = pattern.substr(offset, size);
-              // capture_group.pattern =
-              //   std::make_unique<std::vector<pattern_token_t>>(
-              //     parse_pattern(sub_pattern));
+              sub_pattern = pattern.substr(offset, size);
+              capture_group.pattern =
+                std::make_unique<std::vector<std::vector<pattern_token_t>>>(
+                  parse_pattern(sub_pattern));
               break;
             } else {
               nesting_depth--;
@@ -300,6 +320,11 @@ std::optional<match_result_t> matcher_internal(
   std::span<pattern_token_t> pattern, const int pattern_pos,
   const uint32_t anchors, std::span<const capture_group_t*> capture_groups,
   cache_t& cache);
+
+std::optional<int> match_here(
+  const std::string_view input, const int input_pos,
+  std::span<pattern_token_t> pattern, const int pattern_pos,
+  const uint32_t anchors);
 
 std::optional<match_result_t> do_match(
   std::span<pattern_token_t> pattern, const int pattern_pos,
@@ -342,16 +367,17 @@ std::optional<match_result_t> do_match(
     }
     return std::nullopt;
   } else if (auto* capture = std::get_if<capture_group_t>(&token)) {
-    // cache_t cache;
-    // if (
-    //   auto next_match = matcher_internal(
-    //     input, input_pos, *capture->pattern, 0, anchors_for_subpattern(),
-    //     captured_groups, cache)) {
+    for (auto& pattern : *capture->pattern) {
+      if (
+        auto move =
+          match_here(input, input_pos, pattern, 0, anchors_for_subpattern())) {
+        return match_result_t{.start = input_pos, .move = *move};
+      }
+    }
     //   capture->match = std::string(
     //     input.begin() + next_match->start,
     //     input.begin() + input_pos + next_match->move);
     //   return next_match;
-    // }
     return std::nullopt;
   } else if (std::get_if<wildcard_t>(&token)) {
     return std::make_optional(match_result_t{.start = input_pos, .move = 1});
@@ -400,7 +426,8 @@ std::optional<int> match_here(
                                                    : std::nullopt;
   }
   std::optional<int> next;
-  auto move = do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
+  const auto move =
+    do_match_2(pattern, pattern_pos, input, input_pos, anchors, {});
   if (!move) {
     if (quantifier == quantifier_e::zero_or_one) {
       next = match_here(input, input_pos, pattern, pattern_pos + 1, anchors);
@@ -609,8 +636,8 @@ int main(int argc, char* argv[]) {
   // }
 
   {
-    const std::string input = "blue";
-    auto parsed_pattern = parse_pattern("red|blue|green");
+    const std::string input = "I like  and parrots";
+    auto parsed_pattern = parse_pattern("I like (cats|dogs)? and parrots");
     // auto capture_groups = get_capture_groups(parsed_pattern);
     std::vector<capture_group_t*> capture_groups;
     auto res = matcher(input, parsed_pattern, capture_groups);
