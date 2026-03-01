@@ -561,8 +561,6 @@ std::optional<match_result_t> matcher(
     return std::nullopt;
   }
   if (std::holds_alternative<begin_anchor_t>(first_pattern.front())) {
-    first_pattern.erase(first_pattern.begin());
-    // patterns.front() = std::move(first_pattern);
     anchors |= anchor_e::begin;
   }
   auto& last_pattern = patterns.back();
@@ -570,19 +568,25 @@ std::optional<match_result_t> matcher(
     return std::nullopt;
   }
   if (std::holds_alternative<end_anchor_t>(last_pattern.back())) {
-    last_pattern.pop_back();
-    // patterns.back() = std::move(last_pattern);
     anchors |= anchor_e::end;
   }
   for (int i = 0; i < input.size(); i++) {
-    for (auto& pattern : patterns) {
+    for (int p = 0; auto& pattern : patterns) {
+      std::span<pattern_token_t> pattern_span = pattern;
+      if ((anchors & anchor_e::begin) != 0) {
+        pattern_span = pattern_span | std::views::drop(1);
+      }
+      if ((anchors & anchor_e::end) != 0) {
+        pattern_span = pattern_span | std::views::take(pattern_span.size() - 1);
+      }
       if (
         auto result =
-          match_here(input, i, pattern, 0, anchors, captured_groups)) {
+          match_here(input, i, pattern_span, 0, anchors, captured_groups)) {
         return match_result_t{.start = i, .move = *result};
       } else if ((anchors & anchor_e::begin) != 0) {
         goto end;
       }
+      p++;
     }
   }
 end:
@@ -598,8 +602,8 @@ std::vector<capture_group_t*> get_capture_groups(
       std::vector<capture_group_t*> acc,
       std::vector<pattern_token_t>& pattern_tokens) {
       for (auto& pattern_token : pattern_tokens) {
-        if (std::holds_alternative<capture_group_t>(pattern_token)) {
-          auto* capture_group = std::get_if<capture_group_t>(&pattern_token);
+        if (
+          auto* capture_group = std::get_if<capture_group_t>(&pattern_token)) {
           auto sub_capture_groups = get_capture_groups(*capture_group->pattern);
           acc.push_back(capture_group);
           acc.insert(
@@ -646,8 +650,10 @@ int main(int argc, char* argv[]) {
   // }
 
   {
-    const std::string input = "cat and cat";
-    auto parsed_pattern = parse_pattern("(\\w+) and \\1");
+    // const std::string input = "cat is cat, not dog";
+    // auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
+    const std::string input = "strawberry";
+    auto parsed_pattern = parse_pattern("^strawberry$");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
     if (res) {

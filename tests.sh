@@ -275,11 +275,6 @@ if [ $? -ne 0 ]; then
   echo "test failed - 123-123."
 fi
 
-# echo -n 'cat is cat, not dog' | build/Debug/grep -E '^([act]+) is \1, not [^xyz]+$' # 0
-# if [ $? -ne 0 ]; then
-#   echo "test failed - cat is cat, not dog."
-# fi
-
 echo -n '3 red and 3 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2' # 0
 if [ $? -ne 0 ]; then
   echo "test failed - 3 red and 3 red."
@@ -328,4 +323,9 @@ fi
 echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
 if [ $? -ne 0 ]; then
   echo "test failed - somethinggoodbye."
+fi
+
+echo -n 'cat is cat, not dog' | build/Debug/grep -E '^([act]+) is \1, not [^xyz]+$' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - cat is cat, not dog."
 fi
