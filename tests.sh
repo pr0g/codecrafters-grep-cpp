@@ -329,3 +329,13 @@ echo -n 'cat is cat, not dog' | build/Debug/grep -E '^([act]+) is \1, not [^xyz]
 if [ $? -ne 0 ]; then
   echo "test failed - cat is cat, not dog."
 fi
+
+echo -n 'not efg, abc, or def' | build/Debug/grep -E 'not ([^xyz]+),' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - not efg, abc, or def"
+fi
+
+echo -n 'abc-def is abc-def, not efg, abc, or def' | build/Debug/grep -E '(([abc]+)-([def]+)) is \1, not ([^xyz]+), \2, or \3' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - abc-def is abc-def, not efg, abc, or def"
+fi
