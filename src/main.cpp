@@ -277,8 +277,7 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
         for (int i = offset, size = 0;; size++, i++) {
           if (pattern[i] == '(') {
             nesting_depth++;
-          }
-          if (pattern[i] == ')') {
+          } else if (pattern[i] == ')') {
             if (nesting_depth == 0) {
               sub_pattern = pattern.substr(offset, size);
               capture_group.pattern =
@@ -302,7 +301,9 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
   if (anchored_end) {
     pattern_tokens.push_back(end_anchor_t{});
   }
-  all_pattern_tokens.push_back(std::move(pattern_tokens));
+  if (!pattern_tokens.empty()) {
+    all_pattern_tokens.push_back(std::move(pattern_tokens));
+  }
   return all_pattern_tokens;
 }
 
@@ -342,8 +343,8 @@ std::optional<match_result_t> do_match(
     return 0;
   };
   auto& token = pattern[pattern_pos];
-  if (auto* l = std::get_if<literal_t>(&token)) {
-    if (l->l == c) {
+  if (auto* literal = std::get_if<literal_t>(&token)) {
+    if (literal->l == c) {
       return std::make_optional(match_result_t{.start = input_pos, .move = 1});
     }
     return std::nullopt;
