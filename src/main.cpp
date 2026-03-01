@@ -109,8 +109,6 @@ struct wildcard_t {
   std::optional<quantifier_e> quantifier;
 };
 
-struct alternation_t {};
-
 struct backreference_t {
   int number;
   std::optional<quantifier_e> quantifier;
@@ -639,22 +637,11 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-  // {
-  //   auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-  //   auto capture_groups = get_capture_groups(parsed_pattern);
-  //   auto res = matcher("not efg, abc, or def", parsed_pattern,
-  //   capture_groups); if (res) {
-  //     std::cout << res->move << '\n';
-  //   }
-  //   int test;
-  //   test = 0;
-  // }
-
   {
-    // const std::string input = "cat is cat, not dog";
-    // auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
-    const std::string input = "strawberry";
-    auto parsed_pattern = parse_pattern("^strawberry$");
+    // const auto input = std::string("not efg, abc, or def");
+    // auto parsed_pattern = parse_pattern("not ([^xyz]+),");
+    const auto input = std::string("I see 1 cat");
+    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
     if (res) {
@@ -663,6 +650,18 @@ int main(int argc, char* argv[]) {
     int test;
     test = 0;
   }
+
+  // {
+  //   const std::string input = "cat is cat, not dog";
+  //   auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
+  //   auto capture_groups = get_capture_groups(parsed_pattern);
+  //   auto res = matcher(input, parsed_pattern, capture_groups);
+  //   if (res) {
+  //     // std::cerr << input.substr(res->start, res->move) << '\n';
+  //   }
+  //   int test;
+  //   test = 0;
+  // }
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
