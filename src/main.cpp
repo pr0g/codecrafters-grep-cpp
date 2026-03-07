@@ -10,29 +10,6 @@
 #include <variant>
 #include <vector>
 
-template<class T>
-void hash_combine(std::size_t& seed, const T& v) {
-  std::hash<T> hasher;
-  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-struct pair_hash_t {
-  size_t operator()(const std::pair<uint64_t, uint64_t>& p) const {
-    size_t seed = 0;
-    hash_combine(seed, p.first);
-    hash_combine(seed, p.second);
-    return seed;
-  }
-};
-
-struct pair_equals_t {
-  size_t operator()(
-    const std::pair<uint64_t, uint64_t>& lhs,
-    const std::pair<uint64_t, uint64_t>& rhs) const {
-    return lhs.first == rhs.first && lhs.second == rhs.second;
-  }
-};
-
 bool is_literal(const char c) {
   // todo - more regex meta characters to add
   return c != '\\' && c != '[' && c != '(' && c != '|';
@@ -123,27 +100,6 @@ struct capture_group_t {
     literal_t, digit_t, word_t, positive_character_group_t,
     negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
     capture_group_t, backreference_t>>>;
-
-  // capture_group_t() = default;
-  // capture_group_t(const capture_group_t& capture_group)
-  //   : pattern(
-  //       capture_group.pattern
-  //         ? std::make_unique<internal_pattern_t>(*capture_group.pattern)
-  //         : nullptr),
-  //     quantifier(capture_group.quantifier), match(capture_group.match) {
-  // }
-  // capture_group_t& operator=(const capture_group_t& capture_group) {
-  //   if (this != &capture_group) {
-  //     capture_group_t temp(capture_group);
-  //     pattern.swap(temp.pattern);
-  //     match.swap(temp.match);
-  //     quantifier.swap(temp.quantifier);
-  //   }
-  //   return *this;
-  // }
-
-  // capture_group_t(capture_group_t&&) noexcept = default;
-  // capture_group_t& operator=(capture_group_t&&) noexcept = default;
 
   std::unique_ptr<internal_pattern_t> pattern;
   std::string match;
@@ -310,23 +266,12 @@ struct match_result_t {
   int move;
 };
 
-using cache_t = std::unordered_map<
-  std::pair<int, int>, std::optional<match_result_t>, pair_hash_t,
-  pair_equals_t>;
-
-// forward declaration
-std::optional<match_result_t> matcher_internal(
-  std::string_view input, const int input_pos,
-  std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<const capture_group_t*> capture_groups,
-  cache_t& cache);
-
 std::optional<int> match_here(
   const std::string_view input, const int input_pos,
   std::span<pattern_token_t> pattern, const int pattern_pos,
   const uint32_t anchors, std::span<capture_group_t*> captured_groups);
 
-std::optional<match_result_t> do_match(
+std::optional<int> do_match(
   std::span<pattern_token_t> pattern, const int pattern_pos,
   std::string_view input, const int input_pos, const uint32_t anchors,
   std::span<capture_group_t*> captured_groups) {
@@ -343,27 +288,27 @@ std::optional<match_result_t> do_match(
   auto& token = pattern[pattern_pos];
   if (auto* literal = std::get_if<literal_t>(&token)) {
     if (literal->l == c) {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+      return 1;
     }
     return std::nullopt;
   } else if (auto* digit = std::get_if<digit_t>(&token)) {
     if (std::isdigit(static_cast<unsigned char>(c))) {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+      return 1;
     }
     return std::nullopt;
   } else if (auto* word = std::get_if<word_t>(&token)) {
     if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+      return 1;
     }
     return std::nullopt;
   } else if (auto* neg = std::get_if<negative_character_group_t>(&token)) {
     if (neg->group.find(c) == std::string::npos) {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+      return 1;
     }
     return std::nullopt;
   } else if (auto* pos = std::get_if<positive_character_group_t>(&token)) {
     if (pos->group.find(c) != std::string::npos) {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+      return 1;
     }
     return std::nullopt;
   } else if (auto* capture = std::get_if<capture_group_t>(&token)) {
@@ -374,12 +319,12 @@ std::optional<match_result_t> do_match(
           captured_groups)) {
         capture->match = std::string(
           input.begin() + input_pos, input.begin() + input_pos + *move);
-        return match_result_t{.start = input_pos, .move = *move};
+        return *move;
       }
     }
     return std::nullopt;
   } else if (std::get_if<wildcard_t>(&token)) {
-    return std::make_optional(match_result_t{.start = input_pos, .move = 1});
+    return 1;
   } else if (auto* backreference = std::get_if<backreference_t>(&token)) {
     int capture_group_index = backreference->number - 1;
     if (capture_group_index < static_cast<int>(captured_groups.size())) {
@@ -389,7 +334,7 @@ std::optional<match_result_t> do_match(
           auto move = match_here(
             input, input_pos, pattern, 0, anchors_for_subpattern(),
             captured_groups)) {
-          return match_result_t{.start = input_pos, .move = *move};
+          return *move;
         }
       }
     }
@@ -397,15 +342,6 @@ std::optional<match_result_t> do_match(
   }
   // begin_anchor_t or end_anchor_t
   return std::nullopt;
-}
-
-std::optional<int> do_match_2(
-  std::span<pattern_token_t> pattern, const int pattern_pos,
-  std::string_view input, const int input_pos, const uint32_t anchors,
-  std::span<capture_group_t*> captured_groups) {
-  return do_match(
-           pattern, pattern_pos, input, input_pos, anchors, captured_groups)
-    .transform([](const auto match_result) { return match_result.move; });
 }
 
 std::optional<int> match_here(
@@ -426,8 +362,8 @@ std::optional<int> match_here(
                                                    : std::nullopt;
   }
   std::optional<int> next;
-  const auto move = do_match_2(
-    pattern, pattern_pos, input, input_pos, anchors, captured_groups);
+  const auto move =
+    do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
   if (!move) {
     if (quantifier == quantifier_e::zero_or_one) {
       next = match_here(
@@ -453,96 +389,6 @@ std::optional<int> match_here(
     return std::nullopt;
   }
   return *next + *move;
-}
-
-std::optional<match_result_t> matcher_internal(
-  const std::string_view input, const int input_pos,
-  std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<capture_group_t*> captured_groups,
-  cache_t& cache) {
-  if (pattern_pos == pattern.size()) {
-    if ((anchors & anchor_e::end) != 0) {
-      return input_pos == input.size()
-             ? std::make_optional(match_result_t{.start = input_pos, .move = 0})
-             : std::optional<match_result_t>(std::nullopt);
-    } else {
-      return std::make_optional(match_result_t{.start = input_pos, .move = 0});
-    }
-  }
-  const auto quantifier = get_quantifier(pattern[pattern_pos]);
-  if (input_pos == input.size()) {
-    return quantifier == quantifier_e::zero_or_one
-           ? std::make_optional(match_result_t{.start = input_pos, .move = 0})
-           : std::optional<match_result_t>(std::nullopt);
-  }
-  if (auto it = cache.find({input_pos, pattern_pos}); it != cache.end()) {
-    return it->second;
-  }
-  const auto result =
-    do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
-  if (result.has_value()) {
-    const match_result_t& match_result = *result;
-    if (quantifier == quantifier_e::one_or_more) {
-      // try to match more of the pattern (greedy)
-      auto greedy_match = matcher_internal(
-        input, input_pos + 1, pattern, pattern_pos, anchors, captured_groups,
-        cache);
-      if (greedy_match.has_value()) {
-        greedy_match->start = std::min(match_result.start, greedy_match->start);
-        greedy_match->move += 1;
-        return greedy_match;
-      }
-    }
-    auto match = matcher_internal(
-      input, input_pos + match_result.move, pattern, pattern_pos + 1, anchors,
-      captured_groups, cache);
-    if (match.has_value()) {
-      match->start = std::min(match_result.start, match->start);
-      match->move += match_result.move;
-      return match;
-    } else {
-      auto next_match = matcher_internal(
-        input, input_pos + match_result.move, pattern, 0, anchors,
-        captured_groups, cache);
-      if (next_match.has_value()) {
-        next_match->start = std::min(match_result.start, next_match->start);
-        next_match->move += match_result.move;
-        return next_match;
-      } else {
-        return std::nullopt;
-      }
-    }
-  } else {
-    if (quantifier == quantifier_e::one_or_more) {
-      // no match at current position
-      return std::optional<match_result_t>(std::nullopt);
-    } else if (quantifier == quantifier_e::zero_or_one) {
-      auto match = matcher_internal(
-        input, input_pos, pattern, pattern_pos + 1, anchors, captured_groups,
-        cache);
-      if (match.has_value()) {
-        match->move += 1;
-        return match;
-      } else {
-        return std::nullopt;
-      }
-    }
-    // backtrack
-    if ((anchors & anchor_e::begin) == 0) {
-      auto match = matcher_internal(
-        input, input_pos + 1, pattern, 0, anchors, captured_groups, cache);
-      if (match.has_value()) {
-        match->move += 1;
-        return match;
-      } else {
-        return std::nullopt;
-      }
-    } else {
-      return std::optional<match_result_t>(std::nullopt);
-    }
-  }
-  cache.insert({{input_pos, pattern_pos}, result});
-  return result;
 }
 
 std::optional<match_result_t> matcher(
@@ -697,3 +543,26 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 }
+
+#if 0
+capture_group_t() = default;
+capture_group_t(const capture_group_t& capture_group)
+  : pattern(
+      capture_group.pattern
+        ? std::make_unique<internal_pattern_t>(*capture_group.pattern)
+        : nullptr),
+    quantifier(capture_group.quantifier), match(capture_group.match) {
+}
+capture_group_t& operator=(const capture_group_t& capture_group) {
+  if (this != &capture_group) {
+    capture_group_t temp(capture_group);
+    pattern.swap(temp.pattern);
+    match.swap(temp.match);
+    quantifier.swap(temp.quantifier);
+  }
+  return *this;
+}
+
+capture_group_t(capture_group_t&&) noexcept = default;
+capture_group_t& operator=(capture_group_t&&) noexcept = default;
+#endif
