@@ -542,7 +542,7 @@ int main(int argc, char* argv[]) {
     if (reader.is_open()) {
       for (std::string line; std::getline(reader, line);) {
         if (grep(pattern, line) == 0) {
-          std::cerr << line << '\n';
+          std::cout << line << '\n';
           return 0;
         }
       }
