@@ -557,9 +557,15 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-    for (const auto& match : matches) {
-      for (const auto& line : match.second) {
-        std::cout << std::format("{}:{}", match.first, line) << '\n';
+    if (matches.size() == 1) {
+      for (const auto& line : matches.front().second) {
+        std::cout << line << '\n';
+      }
+    } else {
+      for (const auto& match : matches) {
+        for (const auto& line : match.second) {
+          std::cout << std::format("{}:{}", match.first, line) << '\n';
+        }
       }
     }
     return matches.empty() ? 1 : 0;
