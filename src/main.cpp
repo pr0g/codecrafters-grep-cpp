@@ -557,7 +557,7 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-    if (matches.size() == 1) {
+    if (argc == 4) {
       for (const auto& line : matches.front().second) {
         std::cout << line << '\n';
       }
