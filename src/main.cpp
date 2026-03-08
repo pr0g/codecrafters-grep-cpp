@@ -557,6 +557,9 @@ int main(int argc, char* argv[]) {
         }
       }
     }
+    if (matches.empty()) {
+      return 1;
+    }
     if (argc == 4) {
       for (const auto& line : matches.front().second) {
         std::cout << line << '\n';
@@ -568,7 +571,7 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-    return matches.empty() ? 1 : 0;
+    return 0;
   } else {
     std::string input;
     std::getline(std::cin, input);
