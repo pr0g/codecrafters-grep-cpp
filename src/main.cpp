@@ -368,31 +368,33 @@ std::optional<int> match_here(
   auto move_opt =
     do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
   if (!move_opt) {
-    if (quantifier == quantifier_e::zero_or_one) {
-      next_opt = match_here(
-        input, input_pos, pattern, pattern_pos + 1, anchors, captured_groups);
-      if (!next_opt) {
-        return std::nullopt;
-      } else {
-        move_opt = next_opt;
-      }
-    } else {
+    if (quantifier != quantifier_e::zero_or_one) {
       return std::nullopt;
     }
-  }
-  auto move = *move_opt;
-  if (quantifier == quantifier_e::one_or_more) {
+    // try next pattern position, ignoring the previous mismatch
     next_opt = match_here(
-      input, input_pos + move, pattern, pattern_pos, anchors, captured_groups);
+      input, input_pos, pattern, pattern_pos + 1, anchors, captured_groups);
+    if (!next_opt) {
+      return std::nullopt;
+    }
+    move_opt = next_opt;
+  }
+  if (quantifier == quantifier_e::one_or_more) {
+    // match again at next input position with current pattern position
+    next_opt = match_here(
+      input, input_pos + *move_opt, pattern, pattern_pos, anchors,
+      captured_groups);
   }
   if (!next_opt) {
+    // normal case, move to the next pattern position and input position
     next_opt = match_here(
-      input, input_pos + move, pattern, pattern_pos + 1, anchors,
+      input, input_pos + *move_opt, pattern, pattern_pos + 1, anchors,
       captured_groups);
+    // if previous case was a greedy matcher that failed, 'give back' characters
+    // repeatedly until we find a match with the next character in the input
     if (!next_opt) {
-      while (move > 1) {
-        move--;
-        // backtrack, walking backwards
+      for (auto move = *move_opt - 1; move > 1; move--) {
+        // backtrack
         next_opt = match_here(
           input, input_pos + move, pattern, pattern_pos + 1, anchors,
           captured_groups);
@@ -405,8 +407,7 @@ std::optional<int> match_here(
   if (!next_opt) {
     return std::nullopt;
   }
-  const auto next = *next_opt;
-  return next + move;
+  return *next_opt + *move_opt;
 }
 
 std::optional<match_result_t> matcher(
@@ -483,25 +484,6 @@ int main(int argc, char* argv[]) {
 
 #if 0
   {
-    auto parsed_pattern =
-      // parse_pattern("(([abc]+)-([def]+)) is \\1, not ([^xyz])+, \\2, or
-      // \\3");
-      parse_pattern(
-        "(([abc]+)-([def]+)) is \\1, not ([^xyz]+), \\2, or \\3 or \\4");
-    auto capture_groups = get_capture_groups(parsed_pattern);
-    auto res = matcher(
-      "abc-def is abc-def, not efg, abc, or def or efg", parsed_pattern,
-      capture_groups);
-    if (res) {
-      std::cout << res->move << '\n';
-    }
-    int test;
-    test = 0;
-  }
-#endif
-
-#if 0
-  {
     // const auto input = std::string("not efg, abc, or def");
     // auto parsed_pattern = parse_pattern("not ([^xyz]+),");
     const auto input = std::string("act");
@@ -554,26 +536,3 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 }
-
-#if 0
-capture_group_t() = default;
-capture_group_t(const capture_group_t& capture_group)
-  : pattern(
-      capture_group.pattern
-        ? std::make_unique<internal_pattern_t>(*capture_group.pattern)
-        : nullptr),
-    quantifier(capture_group.quantifier), match(capture_group.match) {
-}
-capture_group_t& operator=(const capture_group_t& capture_group) {
-  if (this != &capture_group) {
-    capture_group_t temp(capture_group);
-    pattern.swap(temp.pattern);
-    match.swap(temp.match);
-    quantifier.swap(temp.quantifier);
-  }
-  return *this;
-}
-
-capture_group_t(capture_group_t&&) noexcept = default;
-capture_group_t& operator=(capture_group_t&&) noexcept = default;
-#endif
