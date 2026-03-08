@@ -540,13 +540,16 @@ int main(int argc, char* argv[]) {
     std::string filename = argv[3];
     std::ifstream reader(filename);
     if (reader.is_open()) {
+      std::vector<std::string> matched_lines;
       for (std::string line; std::getline(reader, line);) {
         if (grep(pattern, line) == 0) {
-          std::cout << line << '\n';
-          return 0;
+          matched_lines.push_back(line);
         }
       }
-      return 1;
+      for (const auto& line : matched_lines) {
+        std::cout << line << '\n';
+      }
+      return matched_lines.empty() ? 1 : 0;
     }
   } else {
     std::string input;
