@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -477,6 +478,23 @@ std::vector<capture_group_t*> get_capture_groups(
     });
 }
 
+int grep(const std::string_view pattern, const std::string_view input) {
+  try {
+    auto parsed_pattern = parse_pattern(pattern);
+    auto capture_groups = get_capture_groups(parsed_pattern);
+    if (auto match = matcher(input, parsed_pattern, capture_groups)) {
+      // debug output matching part of string
+      // std::cerr << input.substr(match->start, match->move) << '\n';
+      return 0;
+    } else {
+      return 1;
+    }
+  } catch (const std::runtime_error& e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+}
+
 int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
@@ -505,8 +523,8 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-  if (argc != 3) {
-    std::cerr << "Expected two arguments" << std::endl;
+  if (argc < 3) {
+    std::cerr << "Expected at least three arguments" << std::endl;
     return 1;
   }
 
@@ -518,21 +536,21 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string input;
-  std::getline(std::cin, input);
-
-  try {
-    auto parsed_pattern = parse_pattern(pattern);
-    auto capture_groups = get_capture_groups(parsed_pattern);
-    if (auto match = matcher(input, parsed_pattern, capture_groups)) {
-      // debug output matching part of string
-      // std::cerr << input.substr(match->start, match->move) << '\n';
-      return 0;
-    } else {
+  if (argc == 4) {
+    std::string filename = argv[3];
+    std::ifstream reader(filename);
+    if (reader.is_open()) {
+      for (std::string line; std::getline(reader, line);) {
+        if (grep(pattern, line) == 0) {
+          std::cerr << line << '\n';
+          return 0;
+        }
+      }
       return 1;
     }
-  } catch (const std::runtime_error& e) {
-    std::cerr << e.what() << std::endl;
-    return 1;
+  } else {
+    std::string input;
+    std::getline(std::cin, input);
+    return grep(pattern, input);
   }
 }
