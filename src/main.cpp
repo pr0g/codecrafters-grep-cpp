@@ -537,21 +537,32 @@ int main(int argc, char* argv[]) {
   }
 
   if (argc >= 4) {
-    std::vector<std::string> matched_lines;
+    std::vector<std::pair<std::string, std::vector<std::string>>> matches;
     for (int i = 3; i < argc; i++) {
       std::string filename = argv[i];
       if (std::ifstream reader(filename); reader.is_open()) {
+        std::optional<std::string> matched_filename;
+        std::vector<std::string> matched_lines;
         for (std::string line; std::getline(reader, line);) {
           if (grep(pattern, line) == 0) {
+            if (!matched_filename) {
+              matched_filename = filename;
+            }
             matched_lines.push_back(line);
           }
         }
+        if (matched_filename) {
+          matches.push_back(
+            {std::move(*matched_filename), std::move(matched_lines)});
+        }
       }
     }
-    for (const auto& line : matched_lines) {
-      std::cout << line << '\n';
+    for (const auto& match : matches) {
+      for (const auto& line : match.second) {
+        std::cout << std::format("{}:{}", match.first, line) << '\n';
+      }
     }
-    return matched_lines.empty() ? 1 : 0;
+    return matches.empty() ? 1 : 0;
   } else {
     std::string input;
     std::getline(std::cin, input);
