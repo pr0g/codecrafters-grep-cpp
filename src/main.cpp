@@ -365,7 +365,7 @@ std::optional<int> match_here(
                                                    : std::nullopt;
   }
   std::optional<int> next_opt;
-  const auto move_opt =
+  auto move_opt =
     do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
   if (!move_opt) {
     if (quantifier == quantifier_e::zero_or_one) {
@@ -373,6 +373,8 @@ std::optional<int> match_here(
         input, input_pos, pattern, pattern_pos + 1, anchors, captured_groups);
       if (!next_opt) {
         return std::nullopt;
+      } else {
+        move_opt = next_opt;
       }
     } else {
       return std::nullopt;
@@ -432,7 +434,7 @@ std::optional<match_result_t> matcher(
     anchors |= anchor_e::end;
   }
   for (int i = 0; i < input.size(); i++) {
-    for (int p = 0; auto& pattern : patterns) {
+    for (auto& pattern : patterns) {
       std::span<pattern_token_t> pattern_span = pattern;
       if ((anchors & anchor_e::begin) != 0) {
         pattern_span = pattern_span | std::views::drop(1);
@@ -447,7 +449,6 @@ std::optional<match_result_t> matcher(
       } else if ((anchors & anchor_e::begin) != 0) {
         goto end;
       }
-      p++;
     }
   }
 end:
@@ -501,16 +502,16 @@ int main(int argc, char* argv[]) {
 
 #if 0
   {
-    const auto input = std::string("not efg, abc, or def");
-    auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-    const auto input = std::string("cat");
+    // const auto input = std::string("not efg, abc, or def");
+    // auto parsed_pattern = parse_pattern("not ([^xyz]+),");
+    const auto input = std::string("act");
     auto parsed_pattern = parse_pattern("ca?t");
-    const auto input = std::string("I see 2 dog3");
-    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
-    const auto input = std::string("n ab,");
-    auto parsed_pattern = parse_pattern("n ([^xyz]+),");
-    const auto input = std::string("I see 1 cat");
-    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    // const auto input = std::string("I see 2 dog3");
+    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    // const auto input = std::string("n ab,");
+    // auto parsed_pattern = parse_pattern("n ([^xyz]+),");
+    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    // const auto input = std::string("I see 1 cat");
 
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
