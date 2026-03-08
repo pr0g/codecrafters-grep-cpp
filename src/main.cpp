@@ -499,15 +499,19 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
+#if 0
   {
     const auto input = std::string("not efg, abc, or def");
     auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-    // const auto input = std::string("I see 2 dog3");
-    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
-    // const auto input = std::string("n ab,");
-    // auto parsed_pattern = parse_pattern("n ([^xyz]+),");
-    // const auto input = std::string("I see 1 cat");
-    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    const auto input = std::string("cat");
+    auto parsed_pattern = parse_pattern("ca?t");
+    const auto input = std::string("I see 2 dog3");
+    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    const auto input = std::string("n ab,");
+    auto parsed_pattern = parse_pattern("n ([^xyz]+),");
+    const auto input = std::string("I see 1 cat");
+    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+
     auto capture_groups = get_capture_groups(parsed_pattern);
     auto res = matcher(input, parsed_pattern, capture_groups);
     if (res) {
@@ -516,18 +520,7 @@ int main(int argc, char* argv[]) {
     int test;
     test = 0;
   }
-
-  // {
-  //   const std::string input = "cat is cat, not dog";
-  //   auto parsed_pattern = parse_pattern("^([act]+) is \\1, not [^xyz]+$");
-  //   auto capture_groups = get_capture_groups(parsed_pattern);
-  //   auto res = matcher(input, parsed_pattern, capture_groups);
-  //   if (res) {
-  //     // std::cerr << input.substr(res->start, res->move) << '\n';
-  //   }
-  //   int test;
-  //   test = 0;
-  // }
+#endif
 
   if (argc != 3) {
     std::cerr << "Expected two arguments" << std::endl;
@@ -550,9 +543,6 @@ int main(int argc, char* argv[]) {
     auto capture_groups = get_capture_groups(parsed_pattern);
     if (auto match = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
-      // std::cerr << input_line.substr(match->start, match->move -
-      // match->start)
-      //           << '\n';
       // std::cerr << input.substr(match->start, match->move) << '\n';
       return 0;
     } else {
