@@ -371,6 +371,9 @@ std::optional<int> match_here(
     if (quantifier == quantifier_e::zero_or_one) {
       next_opt = match_here(
         input, input_pos, pattern, pattern_pos + 1, anchors, captured_groups);
+      if (!next_opt) {
+        return std::nullopt;
+      }
     } else {
       return std::nullopt;
     }
@@ -379,9 +382,6 @@ std::optional<int> match_here(
   if (quantifier == quantifier_e::one_or_more) {
     next_opt = match_here(
       input, input_pos + move, pattern, pattern_pos, anchors, captured_groups);
-
-    int a;
-    a = 0;
   }
   if (!next_opt) {
     next_opt = match_here(
@@ -390,6 +390,7 @@ std::optional<int> match_here(
     if (!next_opt) {
       while (move > 1) {
         move--;
+        // backtrack, walking backwards
         next_opt = match_here(
           input, input_pos + move, pattern, pattern_pos + 1, anchors,
           captured_groups);
@@ -499,19 +500,19 @@ int main(int argc, char* argv[]) {
 #endif
 
   {
-    // const auto input = std::string("not efg, abc, or def");
-    // auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-    const auto input = std::string("I see 2 dog3");
-    auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
+    const auto input = std::string("not efg, abc, or def");
+    auto parsed_pattern = parse_pattern("not ([^xyz]+),");
+    // const auto input = std::string("I see 2 dog3");
+    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
     // const auto input = std::string("n ab,");
     // auto parsed_pattern = parse_pattern("n ([^xyz]+),");
     // const auto input = std::string("I see 1 cat");
     // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
-    // auto capture_groups = get_capture_groups(parsed_pattern);
-    // auto res = matcher(input, parsed_pattern, capture_groups);
-    // if (res) {
-    // std::cerr << input.substr(res->start, res->move) << '\n';
-    // }
+    auto capture_groups = get_capture_groups(parsed_pattern);
+    auto res = matcher(input, parsed_pattern, capture_groups);
+    if (res) {
+      // std::cerr << input.substr(res->start, res->move) << '\n';
+    }
     int test;
     test = 0;
   }
