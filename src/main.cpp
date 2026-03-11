@@ -501,7 +501,6 @@ using matches_t = std::vector<std::pair<std::string, std::vector<std::string>>>;
 void do_matches(
   const std::string& filename, const std::string_view pattern,
   matches_t& matches) {
-  // std::string filename = argv[i];
   if (std::ifstream reader(filename); reader.is_open()) {
     std::optional<std::string> matched_filename;
     std::vector<std::string> matched_lines;
@@ -530,38 +529,31 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string flag;
-  std::string pattern;
-
-  bool recursive = false;
-  if (argv[1] == std::string("-r")) {
-    recursive = true;
-    flag = argv[2];
-    pattern = argv[3];
-  } else if (argv[1] == std::string("-E")) {
-    flag = argv[1];
-    pattern = argv[2];
-  }
-
-  // const std::string flag = argv[1];
-  // const std::string pattern = argv[2];
+  const auto [flag, pattern, recursive] =
+    [&] -> std::tuple<std::string, std::string, bool> {
+    if (argv[1] == std::string("-r")) {
+      return std::tuple{argv[2], argv[3], true};
+    } else if (argv[1] == std::string("-E")) {
+      return std::tuple{argv[1], argv[2], false};
+    }
+    std::unreachable();
+  }();
 
   if (flag != "-E") {
     std::cerr << "Expected first argument to be '-E'" << std::endl;
     return 1;
   }
 
-  namespace fs = std::filesystem;
-
   if (argc >= 4) {
     matches_t matches;
     for (int i = recursive ? 4 : 3; i < argc; i++) {
       if (recursive) {
-        std::string directory = argv[i];
-        for (const fs::directory_entry& dir_entry :
+        namespace fs = std::filesystem;
+        const std::string& directory = argv[i];
+        for (const fs::directory_entry& entry :
              fs::recursive_directory_iterator(directory)) {
-          if (fs::is_regular_file(dir_entry.path())) {
-            do_matches(dir_entry.path().string(), pattern, matches);
+          if (fs::is_regular_file(entry.path())) {
+            do_matches(entry.path().string(), pattern, matches);
           }
         }
       } else {
