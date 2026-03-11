@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -495,66 +496,76 @@ int grep(const std::string_view pattern, const std::string_view input) {
   }
 }
 
+using matches_t = std::vector<std::pair<std::string, std::vector<std::string>>>;
+
+void do_matches(
+  const std::string& filename, const std::string_view pattern,
+  matches_t& matches) {
+  // std::string filename = argv[i];
+  if (std::ifstream reader(filename); reader.is_open()) {
+    std::optional<std::string> matched_filename;
+    std::vector<std::string> matched_lines;
+    for (std::string line; std::getline(reader, line);) {
+      if (grep(pattern, line) == 0) {
+        if (!matched_filename) {
+          matched_filename = filename;
+        }
+        matched_lines.push_back(line);
+      }
+    }
+    if (matched_filename) {
+      matches.push_back(
+        {std::move(*matched_filename), std::move(matched_lines)});
+    }
+  }
+}
+
 int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-
-#if 0
-  {
-    // const auto input = std::string("not efg, abc, or def");
-    // auto parsed_pattern = parse_pattern("not ([^xyz]+),");
-    const auto input = std::string("act");
-    auto parsed_pattern = parse_pattern("ca?t");
-    // const auto input = std::string("I see 2 dog3");
-    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
-    // const auto input = std::string("n ab,");
-    // auto parsed_pattern = parse_pattern("n ([^xyz]+),");
-    // auto parsed_pattern = parse_pattern("^I see \\d+ (cat|dog)s?$");
-    // const auto input = std::string("I see 1 cat");
-
-    auto capture_groups = get_capture_groups(parsed_pattern);
-    auto res = matcher(input, parsed_pattern, capture_groups);
-    if (res) {
-      // std::cerr << input.substr(res->start, res->move) << '\n';
-    }
-    int test;
-    test = 0;
-  }
-#endif
 
   if (argc < 3) {
     std::cerr << "Expected at least three arguments" << std::endl;
     return 1;
   }
 
-  std::string flag = argv[1];
-  std::string pattern = argv[2];
+  std::string flag;
+  std::string pattern;
+
+  bool recursive = false;
+  if (argv[1] == std::string("-r")) {
+    recursive = true;
+    flag = argv[2];
+    pattern = argv[3];
+  } else if (argv[1] == std::string("-E")) {
+    flag = argv[1];
+    pattern = argv[2];
+  }
+
+  // const std::string flag = argv[1];
+  // const std::string pattern = argv[2];
 
   if (flag != "-E") {
     std::cerr << "Expected first argument to be '-E'" << std::endl;
     return 1;
   }
 
+  namespace fs = std::filesystem;
+
   if (argc >= 4) {
-    std::vector<std::pair<std::string, std::vector<std::string>>> matches;
-    for (int i = 3; i < argc; i++) {
-      std::string filename = argv[i];
-      if (std::ifstream reader(filename); reader.is_open()) {
-        std::optional<std::string> matched_filename;
-        std::vector<std::string> matched_lines;
-        for (std::string line; std::getline(reader, line);) {
-          if (grep(pattern, line) == 0) {
-            if (!matched_filename) {
-              matched_filename = filename;
-            }
-            matched_lines.push_back(line);
+    matches_t matches;
+    for (int i = recursive ? 4 : 3; i < argc; i++) {
+      if (recursive) {
+        std::string directory = argv[i];
+        for (const fs::directory_entry& dir_entry :
+             fs::recursive_directory_iterator(directory)) {
+          if (fs::is_regular_file(dir_entry.path())) {
+            do_matches(dir_entry.path().string(), pattern, matches);
           }
         }
-        if (matched_filename) {
-          matches.push_back(
-            {std::move(*matched_filename), std::move(matched_lines)});
-        }
+      } else {
+        do_matches(argv[i], pattern, matches);
       }
     }
     if (matches.empty()) {
@@ -564,7 +575,7 @@ int main(int argc, char* argv[]) {
       for (const auto& line : matches.front().second) {
         std::cout << line << '\n';
       }
-    } else {
+    } else if (argc >= 5) {
       for (const auto& match : matches) {
         for (const auto& line : match.second) {
           std::cout << std::format("{}:{}", match.first, line) << '\n';
