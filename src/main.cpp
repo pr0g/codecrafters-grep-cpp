@@ -366,8 +366,10 @@ std::optional<int> match_here(
   // base case
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    return quantifier == quantifier_e::zero_or_one ? std::make_optional(0)
-                                                   : std::nullopt;
+    return quantifier == quantifier_e::zero_or_one
+            || quantifier == quantifier_e::zero_or_more
+           ? std::make_optional(0)
+           : std::nullopt;
   }
   std::optional<int> next_opt;
   auto move_opt =
@@ -543,7 +545,7 @@ int main(int argc, char* argv[]) {
   {
     using std::literals::string_literals::operator""s;
     // auto match = grep("ca*t"s, "ct"s);
-    auto match = grep("ca*t"s, "caaat"s);
+    auto match = grep("pear*"s, "pea"s);
     // auto match = grep("k\\d*t"s, "kt"s);
     int a;
     a = 0;
