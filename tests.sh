@@ -339,3 +339,58 @@ echo -n 'abc-def is abc-def, not efg, abc, or def' | build/Debug/grep -E '(([abc
 if [ $? -ne 0 ]; then
   echo "test failed - abc-def is abc-def, not efg, abc, or def"
 fi
+
+echo -n 'ct' | build/Debug/grep -E 'ca*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - ct"
+fi
+
+echo -n 'caaat' | build/Debug/grep -E 'ca*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - caaat"
+fi
+
+echo -n 'dog' | build/Debug/grep -E 'ca*t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - dog"
+fi
+
+echo -n 'kt' | build/Debug/grep -E 'k\d*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - kt"
+fi
+
+echo -n 'k1t' | build/Debug/grep -E 'k\d*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - k1t"
+fi
+
+echo -n 'kabct' | build/Debug/grep -E 'k\d*t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - kabct"
+fi
+
+echo -n 'kt' | build/Debug/grep -E 'k[abc]*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - kt"
+fi
+
+echo -n 'kat' | build/Debug/grep -E 'k[abc]*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - kat"
+fi
+
+echo -n 'kabct' | build/Debug/grep -E 'k[abc]*t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - kabct"
+fi
+
+echo -n 'kaxyzt' | build/Debug/grep -E 'k[abc]*t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - kaxyzt"
+fi
+
+echo -n 'pea' | build/Debug/grep -E 'pear*' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - pea"
+fi

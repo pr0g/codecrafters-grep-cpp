@@ -59,7 +59,7 @@ bool is_number(unsigned char c) {
   return std::isdigit(c);
 }
 
-enum class quantifier_e { one_or_more, zero_or_one };
+enum class quantifier_e { one_or_more, zero_or_one, zero_or_more };
 
 struct literal_t {
   std::optional<quantifier_e> quantifier;
@@ -182,6 +182,9 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
         p++;
       } else if (pattern[p] == '?') {
         set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_one);
+        p++;
+      } else if (pattern[p] == '*') {
+        set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_more);
         p++;
       } else if (pattern[p] == '.') {
         pattern_tokens.push_back(wildcard_t{});
@@ -370,7 +373,9 @@ std::optional<int> match_here(
   auto move_opt =
     do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
   if (!move_opt) {
-    if (quantifier != quantifier_e::zero_or_one) {
+    if (
+      quantifier != quantifier_e::zero_or_one
+      && quantifier != quantifier_e::zero_or_more) {
       return std::nullopt;
     }
     // try next pattern position, ignoring the previous mismatch
@@ -381,12 +386,23 @@ std::optional<int> match_here(
     }
     move_opt = next_opt;
   }
-  if (quantifier == quantifier_e::one_or_more) {
+  if (!move_opt && quantifier == quantifier_e::zero_or_more) {
+    next_opt = match_here(
+      input, input_pos + 1, pattern, pattern_pos, anchors, captured_groups);
+    if (!next_opt) {
+      return std::nullopt;
+    }
+    move_opt = next_opt;
+  }
+  if (
+    !next_opt
+    && (quantifier == quantifier_e::one_or_more || quantifier == quantifier_e::zero_or_more)) {
     // match again at next input position with current pattern position
     next_opt = match_here(
       input, input_pos + *move_opt, pattern, pattern_pos, anchors,
       captured_groups);
   }
+
   if (!next_opt) {
     // normal case, move to the next pattern position and input position
     next_opt = match_here(
@@ -523,6 +539,15 @@ int main(int argc, char* argv[]) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
+
+  {
+    using std::literals::string_literals::operator""s;
+    // auto match = grep("ca*t"s, "ct"s);
+    auto match = grep("ca*t"s, "caaat"s);
+    // auto match = grep("k\\d*t"s, "kt"s);
+    int a;
+    a = 0;
+  }
 
   if (argc < 3) {
     std::cerr << "Expected at least three arguments" << std::endl;
