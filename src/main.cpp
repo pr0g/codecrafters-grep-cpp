@@ -59,38 +59,47 @@ bool is_number(unsigned char c) {
   return std::isdigit(c);
 }
 
-enum class quantifier_e { one_or_more, zero_or_one, zero_or_more };
+struct one_or_more_t {};
+struct zero_or_one_t {};
+struct zero_or_more_t {};
+struct n_times_t {
+  int times;
+};
+
+// enum class quantifier_e { one_or_more, zero_or_one, zero_or_more };
+using quantifier_t =
+  std::variant<one_or_more_t, zero_or_one_t, zero_or_more_t, n_times_t>;
 
 struct literal_t {
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
   char l;
 };
 
 struct digit_t {
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct word_t {
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct positive_character_group_t {
   std::string group;
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct negative_character_group_t {
   std::string group;
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct wildcard_t {
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct backreference_t {
   int number;
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct begin_anchor_t {};
@@ -105,7 +114,7 @@ struct capture_group_t {
 
   std::unique_ptr<internal_pattern_t> pattern;
   std::string match;
-  std::optional<quantifier_e> quantifier;
+  std::optional<quantifier_t> quantifier;
 };
 
 struct anchor_e {
@@ -117,7 +126,7 @@ using pattern_token_t = std::variant<
   negative_character_group_t, begin_anchor_t, end_anchor_t, wildcard_t,
   capture_group_t, backreference_t>;
 
-void set_quantifier(pattern_token_t& token, const quantifier_e quantifier) {
+void set_quantifier(pattern_token_t& token, const quantifier_t quantifier) {
   if (auto* p = std::get_if<literal_t>(&token)) {
     p->quantifier = quantifier;
   } else if (auto* p = std::get_if<digit_t>(&token)) {
@@ -141,7 +150,7 @@ void set_quantifier(pattern_token_t& token, const quantifier_e quantifier) {
   }
 }
 
-std::optional<quantifier_e> get_quantifier(const pattern_token_t& token) {
+std::optional<quantifier_t> get_quantifier(const pattern_token_t& token) {
   if (auto* p = std::get_if<literal_t>(&token)) {
     return p->quantifier;
   } else if (auto* p = std::get_if<digit_t>(&token)) {
@@ -178,13 +187,13 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
        p < (anchored_end ? pattern.size() - 1 : pattern.size());) {
     if (is_literal(pattern[p])) {
       if (pattern[p] == '+') {
-        set_quantifier(pattern_tokens.back(), quantifier_e::one_or_more);
+        set_quantifier(pattern_tokens.back(), one_or_more_t{});
         p++;
       } else if (pattern[p] == '?') {
-        set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_one);
+        set_quantifier(pattern_tokens.back(), zero_or_one_t{});
         p++;
       } else if (pattern[p] == '*') {
-        set_quantifier(pattern_tokens.back(), quantifier_e::zero_or_more);
+        set_quantifier(pattern_tokens.back(), zero_or_more_t{});
         p++;
       } else if (pattern[p] == '.') {
         pattern_tokens.push_back(wildcard_t{});
@@ -270,6 +279,15 @@ struct match_result_t {
   int start;
   int move;
 };
+
+template<typename T>
+bool holds_alternative(const std::optional<quantifier_t>& optional_quantifier) {
+  return optional_quantifier
+    .transform([](const auto& quantifier) {
+      return std::holds_alternative<T>(quantifier);
+    })
+    .value_or(false);
+}
 
 std::optional<int> match_here(
   const std::string_view input, const int input_pos,
@@ -366,8 +384,8 @@ std::optional<int> match_here(
   // base case
   const auto quantifier = get_quantifier(pattern[pattern_pos]);
   if (input_pos == input.size()) {
-    return quantifier == quantifier_e::zero_or_one
-            || quantifier == quantifier_e::zero_or_more
+    return holds_alternative<zero_or_one_t>(quantifier)
+            || holds_alternative<zero_or_more_t>(quantifier)
            ? std::make_optional(0)
            : std::nullopt;
   }
@@ -376,8 +394,8 @@ std::optional<int> match_here(
     do_match(pattern, pattern_pos, input, input_pos, anchors, captured_groups);
   if (!move_opt) {
     if (
-      quantifier != quantifier_e::zero_or_one
-      && quantifier != quantifier_e::zero_or_more) {
+      !holds_alternative<zero_or_one_t>(quantifier)
+      && !holds_alternative<zero_or_more_t>(quantifier)) {
       return std::nullopt;
     }
     // try next pattern position, ignoring the previous mismatch
@@ -388,7 +406,7 @@ std::optional<int> match_here(
     }
     move_opt = next_opt;
   }
-  if (!move_opt && quantifier == quantifier_e::zero_or_more) {
+  if (!move_opt && holds_alternative<zero_or_more_t>(quantifier)) {
     next_opt = match_here(
       input, input_pos + 1, pattern, pattern_pos, anchors, captured_groups);
     if (!next_opt) {
@@ -398,7 +416,7 @@ std::optional<int> match_here(
   }
   if (
     !next_opt
-    && (quantifier == quantifier_e::one_or_more || quantifier == quantifier_e::zero_or_more)) {
+    && (holds_alternative<one_or_more_t>(quantifier) || holds_alternative<zero_or_more_t>(quantifier))) {
     // match again at next input position with current pattern position
     next_opt = match_here(
       input, input_pos + *move_opt, pattern, pattern_pos, anchors,
@@ -544,9 +562,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    // auto match = grep("ca*t"s, "ct"s);
-    auto match = grep("pear*"s, "pea"s);
-    // auto match = grep("k\\d*t"s, "kt"s);
+    // auto match = grep(""s, ""s);
     int a;
     a = 0;
   }
