@@ -63,7 +63,7 @@ struct one_or_more_t {};
 struct zero_or_one_t {};
 struct zero_or_more_t {};
 struct n_times_t {
-  int times;
+  int n_times;
 };
 
 // enum class quantifier_e { one_or_more, zero_or_one, zero_or_more };
@@ -195,6 +195,14 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
       } else if (pattern[p] == '*') {
         set_quantifier(pattern_tokens.back(), zero_or_more_t{});
         p++;
+      } else if (pattern[p] == '{') {
+        const auto opening = pattern.begin() + p + 1;
+        const auto closing = std::find(opening, pattern.end(), '}');
+        const auto length = closing - opening;
+        const auto times =
+          std::stoi(std::string(pattern.substr(p + 1, length)));
+        set_quantifier(pattern_tokens.back(), n_times_t{.n_times = times});
+        p += length + 2;
       } else if (pattern[p] == '.') {
         pattern_tokens.push_back(wildcard_t{});
         p++;
@@ -289,10 +297,23 @@ bool holds_alternative(const std::optional<quantifier_t>& optional_quantifier) {
     .value_or(false);
 }
 
+bool holds_ntimes_alternative(
+  const std::optional<quantifier_t>& optional_quantifier, const int repeats) {
+  return optional_quantifier
+    .and_then([](const auto& quantifier) {
+      auto* p = std::get_if<n_times_t>(&quantifier);
+      return p != nullptr ? std::make_optional<n_times_t>(*p)
+                          : std::optional<n_times_t>{};
+    })
+    .transform(
+      [repeats](const n_times_t& n_times) { return repeats < n_times.n_times; })
+    .value_or(false);
+}
+
 std::optional<int> match_here(
-  const std::string_view input, const int input_pos,
-  std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<capture_group_t*> captured_groups);
+  std::string_view input, int input_pos, std::span<pattern_token_t> pattern,
+  int pattern_pos, uint32_t anchors,
+  std::span<capture_group_t*> captured_groups, int repeated_matches = 1);
 
 std::optional<int> do_match(
   std::span<pattern_token_t> pattern, const int pattern_pos,
@@ -373,7 +394,8 @@ std::optional<int> do_match(
 std::optional<int> match_here(
   const std::string_view input, const int input_pos,
   std::span<pattern_token_t> pattern, const int pattern_pos,
-  const uint32_t anchors, std::span<capture_group_t*> captured_groups) {
+  const uint32_t anchors, std::span<capture_group_t*> captured_groups,
+  const int repeated_matches) {
   // base case
   if (pattern_pos == pattern.size()) {
     if ((anchors & anchor_e::end) != 0) {
@@ -415,12 +437,21 @@ std::optional<int> match_here(
     move_opt = next_opt;
   }
   if (
+    const auto n_times_matches =
+      holds_ntimes_alternative(quantifier, repeated_matches);
     !next_opt
-    && (holds_alternative<one_or_more_t>(quantifier) || holds_alternative<zero_or_more_t>(quantifier))) {
+    && (holds_alternative<one_or_more_t>(quantifier) || holds_alternative<zero_or_more_t>(quantifier) || n_times_matches)) {
     // match again at next input position with current pattern position
     next_opt = match_here(
       input, input_pos + *move_opt, pattern, pattern_pos, anchors,
-      captured_groups);
+      captured_groups, repeated_matches + 1);
+    // handle over matching, if we've matched more than n times already
+    if (!next_opt && n_times_matches) {
+      const auto& n_times = std::get<n_times_t>(*quantifier);
+      if (repeated_matches < n_times.n_times) {
+        return std::nullopt;
+      }
+    }
   }
 
   if (!next_opt) {
@@ -482,7 +513,7 @@ std::optional<match_result_t> matcher(
         pattern_span = pattern_span | std::views::take(pattern_span.size() - 1);
       }
       if (
-        auto result =
+        const auto result =
           match_here(input, i, pattern_span, 0, anchors, captured_groups)) {
         return match_result_t{.start = i, .move = *result};
       } else if ((anchors & anchor_e::begin) != 0) {
@@ -562,7 +593,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    // auto match = grep(""s, ""s);
+    auto match = grep("ca{3}t"s, "caat"s);
     int a;
     a = 0;
   }

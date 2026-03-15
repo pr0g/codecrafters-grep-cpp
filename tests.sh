@@ -394,3 +394,43 @@ echo -n 'pea' | build/Debug/grep -E 'pear*' # 0
 if [ $? -ne 0 ]; then
   echo "test failed - pea"
 fi
+
+echo -n 'caaat' | build/Debug/grep -E 'ca{3}t' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - caaat"
+fi
+
+echo -n 'caat' | build/Debug/grep -E 'ca{3}t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - caat"
+fi
+
+echo -n 'caaaat' | build/Debug/grep -E 'ca{3}t' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - caaaat"
+fi
+
+echo -n 'd42g' | build/Debug/grep -E 'd\d{2}g' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - d42g"
+fi
+
+echo -n 'd1g' | build/Debug/grep -E 'd\d{2}g' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - d1g"
+fi
+
+echo -n 'd123g' | build/Debug/grep -E 'd\d{2}g' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - d123g"
+fi
+
+echo -n 'czyxzw' | build/Debug/grep -E 'c[xyz]{4}w' # 0
+if [ $? -ne 0 ]; then
+  echo "test failed - czyxzw"
+fi
+
+echo -n 'cxyzw' | build/Debug/grep -E 'c[xyz]{4}w' # 1
+if [ $? -ne 1 ]; then
+  echo "test failed - czyxzw"
+fi
