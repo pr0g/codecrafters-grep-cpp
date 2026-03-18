@@ -65,10 +65,18 @@ struct zero_or_more_t {};
 struct n_times_t {
   int n_times;
 };
+struct at_least_n_times_t {
+  int n_times;
+};
+struct between_n_and_m_times_t {
+  int n_times;
+  int m_times;
+};
 
 // enum class quantifier_e { one_or_more, zero_or_one, zero_or_more };
-using quantifier_t =
-  std::variant<one_or_more_t, zero_or_one_t, zero_or_more_t, n_times_t>;
+using quantifier_t = std::variant<
+  one_or_more_t, zero_or_one_t, zero_or_more_t, n_times_t, at_least_n_times_t,
+  between_n_and_m_times_t>;
 
 struct literal_t {
   std::optional<quantifier_t> quantifier;
@@ -196,13 +204,35 @@ std::vector<std::vector<pattern_token_t>> parse_pattern(
         set_quantifier(pattern_tokens.back(), zero_or_more_t{});
         p++;
       } else if (pattern[p] == '{') {
-        const auto opening = pattern.begin() + p + 1;
-        const auto closing = std::find(opening, pattern.end(), '}');
-        const auto length = closing - opening;
-        const auto times =
-          std::stoi(std::string(pattern.substr(p + 1, length)));
-        set_quantifier(pattern_tokens.back(), n_times_t{.n_times = times});
-        p += length + 2;
+        const auto opening_it = pattern.begin() + p + 1;
+        const auto closing_it = std::find(opening_it, pattern.end(), '}');
+        const auto separator_it = std::find(opening_it, closing_it, ',');
+        const auto min_length =
+          (separator_it != closing_it ? separator_it : closing_it) - opening_it;
+        const auto min_times =
+          std::stoi(std::string(pattern.substr(p + 1, min_length)));
+        int remaining_length = 0;
+        if (separator_it != closing_it) {
+          if (closing_it - separator_it > 1) {
+            const auto max_length = closing_it - separator_it;
+            const auto max_times = std::stoi(
+              std::string(pattern.substr(
+                std::distance(pattern.begin(), separator_it) + 1, max_length)));
+            remaining_length = max_length;
+            set_quantifier(
+              pattern_tokens.back(),
+              between_n_and_m_times_t{
+                .n_times = min_times, .m_times = max_times});
+          } else {
+            remaining_length = 1;
+            set_quantifier(
+              pattern_tokens.back(), at_least_n_times_t{.n_times = min_times});
+          }
+        } else {
+          set_quantifier(
+            pattern_tokens.back(), n_times_t{.n_times = min_times});
+        }
+        p += min_length + remaining_length + 2;
       } else if (pattern[p] == '.') {
         pattern_tokens.push_back(wildcard_t{});
         p++;
@@ -593,7 +623,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("ca{3}t"s, "caat"s);
+    auto match = grep("ca{2,5}t"s, "caat"s);
     int a;
     a = 0;
   }
