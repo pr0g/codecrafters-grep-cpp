@@ -329,15 +329,17 @@ bool holds_alternative(const std::optional<quantifier_t>& optional_quantifier) {
 
 bool holds_ntimes_alternative(
   const std::optional<quantifier_t>& optional_quantifier, const int repeats) {
-  return optional_quantifier
-    .and_then([](const auto& quantifier) {
-      auto* p = std::get_if<n_times_t>(&quantifier);
-      return p != nullptr ? std::make_optional<n_times_t>(*p)
-                          : std::optional<n_times_t>{};
-    })
-    .transform(
-      [repeats](const n_times_t& n_times) { return repeats < n_times.n_times; })
-    .value_or(false);
+  if (!optional_quantifier) {
+    return false;
+  }
+  const auto& quantifier = *optional_quantifier;
+  if (auto* n_times = std::get_if<n_times_t>(&quantifier)) {
+    return repeats < n_times->n_times;
+  }
+  if (auto* at_least_n_times = std::get_if<at_least_n_times_t>(&quantifier)) {
+    return true;
+  }
+  return false;
 }
 
 std::optional<int> match_here(
@@ -477,13 +479,19 @@ std::optional<int> match_here(
       captured_groups, repeated_matches + 1);
     // handle over matching, if we've matched more than n times already
     if (!next_opt && n_times_matches) {
-      const auto& n_times = std::get<n_times_t>(*quantifier);
-      if (repeated_matches < n_times.n_times) {
+      if (
+        const auto& n_times = std::get_if<n_times_t>(&*quantifier);
+        n_times && repeated_matches < n_times->n_times) {
+        return std::nullopt;
+      }
+      if (
+        const auto& at_least_n_times =
+          std::get_if<at_least_n_times_t>(&*quantifier);
+        at_least_n_times && at_least_n_times->n_times > repeated_matches) {
         return std::nullopt;
       }
     }
   }
-
   if (!next_opt) {
     // normal case, move to the next pattern position and input position
     next_opt = match_here(
@@ -623,7 +631,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("ca{2,5}t"s, "caat"s);
+    auto match = grep("ca{2,}t"s, "cat"s);
     int a;
     a = 0;
   }

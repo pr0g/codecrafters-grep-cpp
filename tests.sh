@@ -1,436 +1,471 @@
 #!/bin/bash
 
-echo -n 'this is great' | build/Debug/grep -E 'is' # 0
+echo -n 'this is great' | build/Debug/grep -E 'is'
 if [ $? -ne 0 ]; then
   echo "test failed - this is great"
 fi
 
-echo -n 'where is the number 17 in this string' | build/Debug/grep -E '17' # 0
+echo -n 'where is the number 17 in this string' | build/Debug/grep -E '17'
 if [ $? -ne 0 ]; then
   echo "test failed - where is the number 17 in this string"
 fi
 
-echo -n 'APPLE' | build/Debug/grep -E '\w' # 0
+echo -n 'APPLE' | build/Debug/grep -E '\w'
 if [ $? -ne 0 ]; then
   echo "test failed - APPLE"
 fi
 
-echo -n 'apple' | build/Debug/grep -E '[abc]' # 0
+echo -n 'apple' | build/Debug/grep -E '[abc]'
 if [ $? -ne 0 ]; then
   echo "test failed - apple"
 fi
 
-echo -n 'a1b2c3' | build/Debug/grep -E '[123]' # 0
+echo -n 'a1b2c3' | build/Debug/grep -E '[123]'
 if [ $? -ne 0 ]; then
   echo "test failed - apple"
 fi
 
-echo -n "colour" | build/Debug/grep -E "colou?r" # 0
+echo -n "colour" | build/Debug/grep -E "colou?r"
 if [ $? -ne 0 ]; then
   echo "test failed - colour"
 fi
 
-echo -n 'apple' | build/Debug/grep -E '[^abc]' # 0
+echo -n 'apple' | build/Debug/grep -E '[^abc]'
 if [ $? -ne 0 ]; then
   echo "test failed - apple"
 fi
 
-echo -n 'banana' | build/Debug/grep -E '[^anb]' # 1
+echo -n 'banana' | build/Debug/grep -E '[^anb]'
 if [ $? -ne 1 ]; then
   echo "test failed - banana"
 fi
 
-echo -n 'blueberry' | build/Debug/grep -E '[acdfghijk]' # 1
+echo -n 'blueberry' | build/Debug/grep -E '[acdfghijk]'
 if [ $? -ne 1 ]; then
   echo "test failed - blueberry"
 fi
 
-echo -n '[]' | build/Debug/grep -E '[orange]' # 1
+echo -n '[]' | build/Debug/grep -E '[orange]'
 if [ $? -ne 1 ]; then
   echo "test failed - []"
 fi
 
-echo -n "orangeq\\" | build/Debug/grep -E "[^opq]q\\\\" # 0
+echo -n "orangeq\\" | build/Debug/grep -E "[^opq]q\\\\"
 if [ $? -ne 0 ]; then
   echo "test failed - orangeq\\"
 fi
 
-echo -n 'orange_pear' | build/Debug/grep -E '^orange' # 0
+echo -n 'orange_pear' | build/Debug/grep -E '^orange'
 if [ $? -ne 0 ]; then
   echo "test failed - orange_pear"
 fi
 
-echo -n 'pear_orange' | build/Debug/grep -E '^orange' # 1
+echo -n 'pear_orange' | build/Debug/grep -E '^orange'
 if [ $? -ne 1 ]; then
   echo "test failed - pear_orange"
 fi
 
-echo -n "helloa123" | build/Debug/grep -E "a\d+" # 0
+echo -n "helloa123" | build/Debug/grep -E "a\d+"
 if [ $? -ne 0 ]; then
   echo "test failed - helloa123"
 fi
 
-echo -n 'sally has 3 dogs' | build/Debug/grep -E '\d \w\w\ws' # 0
+echo -n 'sally has 3 dogs' | build/Debug/grep -E '\d \w\w\ws'
 if [ $? -ne 0 ]; then
   echo "test failed - sally has 3 dogs"
 fi
 
-echo -n 'sally has 1 dog' | build/Debug/grep -E '\d \w\w\ws' # 1
+echo -n 'sally has 1 dog' | build/Debug/grep -E '\d \w\w\ws'
 if [ $? -ne 1 ]; then
   echo "test failed - sally has 1 dog"
 fi
 
-echo -n "a123123123123" | build/Debug/grep -E "a[123]+123" # 0
+echo -n "a123123123123" | build/Debug/grep -E "a[123]+123"
 if [ $? -ne 0 ]; then
   echo "test failed - a123123123123"
 fi
 
-echo -n "aaaxbbbacy" | build/Debug/grep -E "a123$" # 1
+echo -n "aaaxbbbacy" | build/Debug/grep -E "a123$"
 if [ $? -ne 1 ]; then
   echo "test failed - aaaxbbbacy"
 fi
 
-echo -n 'pineapple_pear' | build/Debug/grep -E 'pear$' # 0
+echo -n 'pineapple_pear' | build/Debug/grep -E 'pear$'
 if [ $? -ne 0 ]; then
   echo "test failed - pineapple_pear"
 fi
 
-echo -n 'pear_pineapple' | build/Debug/grep -E 'pear$' # 1
+echo -n 'pear_pineapple' | build/Debug/grep -E 'pear$'
 if [ $? -ne 1 ]; then
   echo "test failed - pear_pineapple"
 fi
 
-echo -n 'banana_banana' | build/Debug/grep -E '^banana$' # 1
+echo -n 'banana_banana' | build/Debug/grep -E '^banana$'
 if [ $? -ne 1 ]; then
   echo "test failed - banana_banana"
 fi
 
-echo -n "abcthisisabc" | build/Debug/grep -E "^abc" # 0
+echo -n "abcthisisabc" | build/Debug/grep -E "^abc"
 if [ $? -ne 0 ]; then
   echo "test failed - abcthisisabc"
 fi
 
-echo -n "thisisajvm" | build/Debug/grep -E "^[jmav]+" # 1
+echo -n "thisisajvm" | build/Debug/grep -E "^[jmav]+"
 if [ $? -ne 1 ]; then
   echo "test failed - thisisajvm"
 fi
 
-echo -n "thisisnotthis" | build/Debug/grep -E "this$" # 0
+echo -n "thisisnotthis" | build/Debug/grep -E "this$"
 if [ $? -ne 0 ]; then
   echo "test failed - thisisnotthis"
 fi
 
-echo -n "caaars" | build/Debug/grep -E "ca+aars" # 0
+echo -n "caaars" | build/Debug/grep -E "ca+aars"
 if [ $? -ne 0 ]; then
   echo "test failed - caaars"
 fi
 
-echo -n "dog" | build/Debug/grep -E "d" # 0
+echo -n "dog" | build/Debug/grep -E "d"
 if [ $? -ne 0 ]; then
   echo "test failed - dog"
 fi
 
-echo -n "strawberry" | build/Debug/grep -E "^strawberry$" # 0
+echo -n "strawberry" | build/Debug/grep -E "^strawberry$"
 if [ $? -ne 0 ]; then
   echo "test failed - strawberry"
 fi
 
-echo -n "abc_123_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 0
+echo -n "abc_123_xyz" | build/Debug/grep -E "^abc_\d+_xyz$"
 if [ $? -ne 0 ]; then
   echo "test failed - abc_123_xyz"
 fi
 
-echo -n "abc_rst_xyz" | build/Debug/grep -E "^abc_\d+_xyz$" # 1
+echo -n "abc_rst_xyz" | build/Debug/grep -E "^abc_\d+_xyz$"
 if [ $? -ne 1 ]; then
   echo "test failed - abc_123_xyz"
 fi
 
-echo -n "caabts" | build/Debug/grep -E "ca+abt" # 0 
+echo -n "caabts" | build/Debug/grep -E "ca+abt" 
 if [ $? -ne 0 ]; then
   echo "test failed - caabts"
 fi
 
-echo -n 'cat' | build/Debug/grep -E 'ca+t' # 0
+echo -n 'cat' | build/Debug/grep -E 'ca+t'
 if [ $? -ne 0 ]; then
   echo "test failed - cat"
 fi
 
-echo -n "" | build/Debug/grep -E "\d?" # 0 
+echo -n "" | build/Debug/grep -E "\d?" 
 if [ $? -ne 0 ]; then
   echo "test failed - \"\""
 fi
 
-echo -n "dogs" | build/Debug/grep -E "dogs?" # 0 
+echo -n "dogs" | build/Debug/grep -E "dogs?" 
 if [ $? -ne 0 ]; then
   echo "test failed - dogs"
 fi
 
-echo -n "dog" | build/Debug/grep -E "dogs?" # 0 
+echo -n "dog" | build/Debug/grep -E "dogs?" 
 if [ $? -ne 0 ]; then
   echo "test failed - dog"
 fi
 
-echo -n 'cat' | build/Debug/grep -E 'ca?t' # 0
+echo -n 'cat' | build/Debug/grep -E 'ca?t'
 if [ $? -ne 0 ]; then
   echo "test failed - cat"
 fi
 
-echo -n 'act' | build/Debug/grep -E 'ca?t' # 0
+echo -n 'act' | build/Debug/grep -E 'ca?t'
 if [ $? -ne 0 ]; then
   echo "test failed - act"
 fi
 
-echo -n 'cat' | build/Debug/grep -E 'ca?a?t' # 0
+echo -n 'cat' | build/Debug/grep -E 'ca?a?t'
 if [ $? -ne 0 ]; then
   echo "test failed - cat (2)"
 fi
 
-echo -n 'cag' | build/Debug/grep -E 'ca?t' # 1
+echo -n 'cag' | build/Debug/grep -E 'ca?t'
 if [ $? -ne 1 ]; then
   echo "test failed - cag"
 fi
 
-echo -n "blue" | build/Debug/grep -E "red|blue|green" # 0
+echo -n "blue" | build/Debug/grep -E "red|blue|green"
 if [ $? -ne 0 ]; then
   echo "test failed - blue"
 fi
 
-echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)" # 1
+echo -n "I like fish" | build/Debug/grep -E "I like (cats|dogs)"
 if [ $? -ne 1 ]; then
   echo "test failed - I like fish"
 fi
 
-echo -n "I like catsdogscatsdogs" | build/Debug/grep -E "I like (cats|dogs)+" # 0
+echo -n "I like catsdogscatsdogs" | build/Debug/grep -E "I like (cats|dogs)+"
 if [ $? -ne 0 ]; then
   echo "test failed - I like catsdogscatsdogs"
 fi
 
-echo -n "I like  and parrots" | build/Debug/grep -E "I like (cats|dogs)? and parrots" # 0
+echo -n "I like  and parrots" | build/Debug/grep -E "I like (cats|dogs)? and parrots"
 if [ $? -ne 0 ]; then
   echo "test failed - I like  and parrots"
 fi
 
-echo -n "green" | build/Debug/grep -E "(red|blue|green)" # 0
+echo -n "green" | build/Debug/grep -E "(red|blue|green)"
 if [ $? -ne 0 ]; then
   echo "test failed - green"
 fi
 
-echo -n "doghouse" | build/Debug/grep -E "(cat|dog)" # 0
+echo -n "doghouse" | build/Debug/grep -E "(cat|dog)"
 if [ $? -ne 0 ]; then
   echo "test failed - doghouse"
 fi
 
-echo -n "a cog" | build/Debug/grep -E "a (cat|dog)" # 1
+echo -n "a cog" | build/Debug/grep -E "a (cat|dog)"
 if [ $? -ne 1 ]; then
   echo "test failed - a cog"
 fi
 
-echo -n "I see 1 cat" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 0
+echo -n "I see 1 cat" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$"
 if [ $? -ne 0 ]; then
   echo "test failed - I see 1 cat"
 fi
 
-echo -n "I see 2 dog3" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$" # 1
+echo -n "I see 2 dog3" | build/Debug/grep -E "^I see \d+ (cat|dog)s?$"
 if [ $? -ne 1 ]; then
   echo "test failed - I see 2 dog3"
 fi
 
-echo -n "goøö0Ogol" | build/Debug/grep -E "g.+gol" # 0
+echo -n "goøö0Ogol" | build/Debug/grep -E "g.+gol"
 if [ $? -ne 0 ]; then
   echo "test failed - goøö0Ogol"
 fi
 
-echo -n "car" | build/Debug/grep -E "c.t" # 1
+echo -n "car" | build/Debug/grep -E "c.t"
 if [ $? -ne 1 ]; then
   echo "test failed - car"
 fi
 
-echo -n "cat" | build/Debug/grep -E "c.t" # 0
+echo -n "cat" | build/Debug/grep -E "c.t"
 if [ $? -ne 0 ]; then
   echo "test failed - cat"
 fi
 
-echo -n 'gol' | build/Debug/grep -E 'g.+gol' # 1
+echo -n 'gol' | build/Debug/grep -E 'g.+gol'
 if [ $? -ne 1 ]; then
   echo "test failed - gol"
 fi
 
-echo -n 'cat and cat' | build/Debug/grep -E '(\w+) and \1' # 0
+echo -n 'cat and cat' | build/Debug/grep -E '(\w+) and \1'
 if [ $? -ne 0 ]; then
   echo "test failed - cat and cat."
 fi
 
-echo -n 'cat and dog' | build/Debug/grep -E '(\w+) and \1' # 1
+echo -n 'cat and dog' | build/Debug/grep -E '(\w+) and \1'
 if [ $? -ne 1 ]; then
   echo "test failed - cat and dog ('(\w+) and \1')."
 fi
 
-echo -n 'cat and dog' | build/Debug/grep -E '(cat) and \1' # 1
+echo -n 'cat and dog' | build/Debug/grep -E '(cat) and \1'
 if [ $? -ne 1 ]; then
   echo "test failed - cat and dog ('(cat) and \1')."
 fi
 
-echo -n '123-123' | build/Debug/grep -E '(\d+)-\1' # 0
+echo -n '123-123' | build/Debug/grep -E '(\d+)-\1'
 if [ $? -ne 0 ]; then
   echo "test failed - 123-123."
 fi
 
-echo -n '3 red and 3 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2' # 0
+echo -n '3 red and 3 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2'
 if [ $? -ne 0 ]; then
   echo "test failed - 3 red and 3 red."
 fi
 
-echo -n '3 red and 4 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2' # 1
+echo -n '3 red and 4 red' | build/Debug/grep -E '(\d+) (\w+) and \1 \2'
 if [ $? -ne 1 ]; then
   echo "test failed - 3 red and 4 red."
 fi
 
-echo -n 'cat and dog are dog and cat' | build/Debug/grep -E '(cat) and (dog) are \2 and \1' # 0
+echo -n 'cat and dog are dog and cat' | build/Debug/grep -E '(cat) and (dog) are \2 and \1'
 if [ $? -ne 0 ]; then
   echo "test failed - cat and dog are dog and cat."
 fi
 
-echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '^(apple) (\w+), \1 and \2$' # 1
+echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '^(apple) (\w+), \1 and \2$'
 if [ $? -ne 1 ]; then
   echo "test failed - pineapple pie, pineapple and pie."
 fi
 
-echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '(apple) (\w+)' # 0
+echo -n 'pineapple pie, pineapple and pie' | build/Debug/grep -E '(apple) (\w+)'
 if [ $? -ne 0 ]; then
   echo "test failed - pineapple pie, pineapple and pie."
 fi
 
-echo -n "'cat and cat' is the same as 'cat and cat'" | build/Debug/grep -E "('(cat) and \2') is the same as \1" # 0
+echo -n "'cat and cat' is the same as 'cat and cat'" | build/Debug/grep -E "('(cat) and \2') is the same as \1"
 if [ $? -ne 0 ]; then
   echo "test failed - 'cat and cat' is the same as 'cat and cat'."
 fi
 
-echo -n "dog-dog" | build/Debug/grep -E "((dog)-\2)" # 0
+echo -n "dog-dog" | build/Debug/grep -E "((dog)-\2)"
 if [ $? -ne 0 ]; then
   echo "test failed - dog-dog."
 fi
 
-echo -n "cat cat and cat cat" | build/Debug/grep -E "((\w+) \2) and \1" # 0
+echo -n "cat cat and cat cat" | build/Debug/grep -E "((\w+) \2) and \1"
 if [ $? -ne 0 ]; then
   echo "test failed - cat cat and cat cat."
 fi
 
-echo -n "grep yes is doing grep yes times, and again grep yes times" | build/Debug/grep -E "((\w\w\w\w) (\w\w\w)) is doing \2 \3 times, and again \1 times" # 0
+echo -n "grep yes is doing grep yes times, and again grep yes times" | build/Debug/grep -E "((\w\w\w\w) (\w\w\w)) is doing \2 \3 times, and again \1 times"
 if [ $? -ne 0 ]; then
   echo "test failed - grep yes is doing grep yes times, and again grep yes times"
 fi
 
-echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))' # 0
+echo -n 'somethinggoodbye' | build/Debug/grep -E '(something(hello|goodbye))'
 if [ $? -ne 0 ]; then
   echo "test failed - somethinggoodbye."
 fi
 
-echo -n 'cat is cat, not dog' | build/Debug/grep -E '^([act]+) is \1, not [^xyz]+$' # 0
+echo -n 'cat is cat, not dog' | build/Debug/grep -E '^([act]+) is \1, not [^xyz]+$'
 if [ $? -ne 0 ]; then
   echo "test failed - cat is cat, not dog."
 fi
 
-echo -n 'not efg, abc, or def' | build/Debug/grep -E 'not ([^xyz]+),' # 0
+echo -n 'not efg, abc, or def' | build/Debug/grep -E 'not ([^xyz]+),'
 if [ $? -ne 0 ]; then
   echo "test failed - not efg, abc, or def"
 fi
 
-echo -n 'abc-def is abc-def, not efg, abc, or def' | build/Debug/grep -E '(([abc]+)-([def]+)) is \1, not ([^xyz]+), \2, or \3' # 0
+echo -n 'abc-def is abc-def, not efg, abc, or def' | build/Debug/grep -E '(([abc]+)-([def]+)) is \1, not ([^xyz]+), \2, or \3'
 if [ $? -ne 0 ]; then
   echo "test failed - abc-def is abc-def, not efg, abc, or def"
 fi
 
-echo -n 'ct' | build/Debug/grep -E 'ca*t' # 0
+echo -n 'ct' | build/Debug/grep -E 'ca*t'
 if [ $? -ne 0 ]; then
   echo "test failed - ct"
 fi
 
-echo -n 'caaat' | build/Debug/grep -E 'ca*t' # 0
+echo -n 'caaat' | build/Debug/grep -E 'ca*t'
 if [ $? -ne 0 ]; then
   echo "test failed - caaat"
 fi
 
-echo -n 'dog' | build/Debug/grep -E 'ca*t' # 1
+echo -n 'dog' | build/Debug/grep -E 'ca*t'
 if [ $? -ne 1 ]; then
   echo "test failed - dog"
 fi
 
-echo -n 'kt' | build/Debug/grep -E 'k\d*t' # 0
+echo -n 'kt' | build/Debug/grep -E 'k\d*t'
 if [ $? -ne 0 ]; then
   echo "test failed - kt"
 fi
 
-echo -n 'k1t' | build/Debug/grep -E 'k\d*t' # 0
+echo -n 'k1t' | build/Debug/grep -E 'k\d*t'
 if [ $? -ne 0 ]; then
   echo "test failed - k1t"
 fi
 
-echo -n 'kabct' | build/Debug/grep -E 'k\d*t' # 1
+echo -n 'kabct' | build/Debug/grep -E 'k\d*t'
 if [ $? -ne 1 ]; then
   echo "test failed - kabct"
 fi
 
-echo -n 'kt' | build/Debug/grep -E 'k[abc]*t' # 0
+echo -n 'kt' | build/Debug/grep -E 'k[abc]*t'
 if [ $? -ne 0 ]; then
   echo "test failed - kt"
 fi
 
-echo -n 'kat' | build/Debug/grep -E 'k[abc]*t' # 0
+echo -n 'kat' | build/Debug/grep -E 'k[abc]*t'
 if [ $? -ne 0 ]; then
   echo "test failed - kat"
 fi
 
-echo -n 'kabct' | build/Debug/grep -E 'k[abc]*t' # 0
+echo -n 'kabct' | build/Debug/grep -E 'k[abc]*t'
 if [ $? -ne 0 ]; then
   echo "test failed - kabct"
 fi
 
-echo -n 'kaxyzt' | build/Debug/grep -E 'k[abc]*t' # 1
+echo -n 'kaxyzt' | build/Debug/grep -E 'k[abc]*t'
 if [ $? -ne 1 ]; then
   echo "test failed - kaxyzt"
 fi
 
-echo -n 'pea' | build/Debug/grep -E 'pear*' # 0
+echo -n 'pea' | build/Debug/grep -E 'pear*'
 if [ $? -ne 0 ]; then
   echo "test failed - pea"
 fi
 
-echo -n 'caaat' | build/Debug/grep -E 'ca{3}t' # 0
+echo -n 'caaat' | build/Debug/grep -E 'ca{3}t'
 if [ $? -ne 0 ]; then
   echo "test failed - caaat"
 fi
 
-echo -n 'caat' | build/Debug/grep -E 'ca{3}t' # 1
+echo -n 'caat' | build/Debug/grep -E 'ca{3}t'
 if [ $? -ne 1 ]; then
   echo "test failed - caat"
 fi
 
-echo -n 'caaaat' | build/Debug/grep -E 'ca{3}t' # 1
+echo -n 'caaaat' | build/Debug/grep -E 'ca{3}t'
 if [ $? -ne 1 ]; then
   echo "test failed - caaaat"
 fi
 
-echo -n 'd42g' | build/Debug/grep -E 'd\d{2}g' # 0
+echo -n 'd42g' | build/Debug/grep -E 'd\d{2}g'
 if [ $? -ne 0 ]; then
   echo "test failed - d42g"
 fi
 
-echo -n 'd1g' | build/Debug/grep -E 'd\d{2}g' # 1
+echo -n 'd1g' | build/Debug/grep -E 'd\d{2}g'
 if [ $? -ne 1 ]; then
   echo "test failed - d1g"
 fi
 
-echo -n 'd123g' | build/Debug/grep -E 'd\d{2}g' # 1
+echo -n 'd123g' | build/Debug/grep -E 'd\d{2}g'
 if [ $? -ne 1 ]; then
   echo "test failed - d123g"
 fi
 
-echo -n 'czyxzw' | build/Debug/grep -E 'c[xyz]{4}w' # 0
+echo -n 'czyxzw' | build/Debug/grep -E 'c[xyz]{4}w'
 if [ $? -ne 0 ]; then
   echo "test failed - czyxzw"
 fi
 
-echo -n 'cxyzw' | build/Debug/grep -E 'c[xyz]{4}w' # 1
+echo -n 'cxyzw' | build/Debug/grep -E 'c[xyz]{4}w'
 if [ $? -ne 1 ]; then
   echo "test failed - czyxzw"
+fi
+
+echo -n 'caat' | build/Debug/grep -E 'ca{2,}t'
+if [ $? -ne 0 ]; then
+  echo "test failed - caat"
+fi
+
+echo -n 'caaaaaat' | build/Debug/grep -E 'ca{2,}t'
+if [ $? -ne 0 ]; then
+  echo "test failed - caaaaaat"
+fi
+
+echo -n 'cat' | build/Debug/grep -E 'ca{2,}t'
+if [ $? -ne 1 ]; then
+  echo "test failed - cat"
+fi
+
+echo -n 'x9999y' | build/Debug/grep -E 'x\d{3,}y'
+if [ $? -ne 0 ]; then
+  echo "test failed - x9999y"
+fi
+
+echo -n 'x42y' | build/Debug/grep -E 'x\d{3,}y'
+if [ $? -ne 1 ]; then
+  echo "test failed - x42y"
+fi
+
+echo -n 'baeiour' | build/Debug/grep -E 'b[aeiou]{2,}r'
+if [ $? -ne 0 ]; then
+  echo "test failed - baeiour"
+fi
+
+echo -n 'bar' | build/Debug/grep -E 'b[aeiou]{2,}r'
+if [ $? -ne 1 ]; then
+  echo "test failed - bar"
 fi
