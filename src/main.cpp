@@ -604,6 +604,7 @@ int grep(const std::string_view pattern, const std::string_view input) {
     if (auto match = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
       // std::cerr << input.substr(match->start, match->move) << '\n';
+      std::cout << input << '\n';
       return 0;
     } else {
       return 1;
@@ -643,10 +644,10 @@ int main(int argc, char* argv[]) {
   std::cerr << std::unitbuf;
 
   {
-    using std::literals::string_literals::operator""s;
-    auto match = grep("ca{2,4}t"s, "caat"s);
-    int a;
-    a = 0;
+    // using std::literals::string_literals::operator""s;
+    // auto match = grep("ca{2,4}t"s, "caat"s);
+    // int a;
+    // a = 0;
   }
 
   if (argc < 3) {
