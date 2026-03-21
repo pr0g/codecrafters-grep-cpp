@@ -567,9 +567,14 @@ std::optional<std::vector<match_result_t>> matcher(
       if (
         const auto result =
           match_here(input, i, pattern_span, 0, anchors, captured_groups)) {
-        match_results.push_back(match_result_t{.start = i, .move = *result});
         if ((anchors & anchor_e::begin) != 0) {
+          if (i == 0) {
+            match_results.push_back(
+              match_result_t{.start = i, .move = *result});
+          }
           break;
+        } else {
+          match_results.push_back(match_result_t{.start = i, .move = *result});
         }
         i += *result - 1;
       }
@@ -652,7 +657,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("^orange"s, "orange_suffix"s);
+    auto match = grep("^mango"s, "prefix_mango"s);
     int a;
     a = 0;
   }
