@@ -469,3 +469,43 @@ echo -n 'bar' | build/Debug/grep -E 'b[aeiou]{2,}r'
 if [ $? -ne 1 ]; then
   echo "test failed - bar"
 fi
+
+echo -n 'caat' | build/Debug/grep -E 'ca{2,4}t'
+if [ $? -ne 0 ]; then
+  echo "test failed - caat"
+fi
+
+echo -n 'caaat' | build/Debug/grep -E 'ca{2,4}t'
+if [ $? -ne 0 ]; then
+  echo "test failed - caaat"
+fi
+
+echo -n 'caaaat' | build/Debug/grep -E 'ca{2,4}t'
+if [ $? -ne 0 ]; then
+  echo "test failed - caaaat"
+fi
+
+echo -n 'caaaaat' | build/Debug/grep -E 'ca{2,4}t'
+if [ $? -ne 1 ]; then
+  echo "test failed - caaaaat"
+fi
+
+echo -n 'n123m' | build/Debug/grep -E 'n\d{1,3}m'
+if [ $? -ne 0 ]; then
+  echo "test failed - caaaaat"
+fi
+
+echo -n 'pzzzq' | build/Debug/grep -E 'p[xyz]{2,3}q'
+if [ $? -ne 0 ]; then
+  echo "test failed - pzzzq"
+fi
+
+echo -n 'pxq' | build/Debug/grep -E 'p[xyz]{2,3}q'
+if [ $? -ne 1 ]; then
+  echo "test failed - pzzzq"
+fi
+
+echo -n 'pxyzyq' | build/Debug/grep -E 'p[xyz]{2,3}q'
+if [ $? -ne 1 ]; then
+  echo "test failed - pzzzq"
+fi

@@ -339,6 +339,11 @@ bool holds_ntimes_alternative(
   if (auto* at_least_n_times = std::get_if<at_least_n_times_t>(&quantifier)) {
     return true;
   }
+  if (
+    auto* between_n_and_m_times =
+      std::get_if<between_n_and_m_times_t>(&quantifier)) {
+    return repeats < between_n_and_m_times->m_times;
+  }
   return false;
 }
 
@@ -487,7 +492,15 @@ std::optional<int> match_here(
       if (
         const auto& at_least_n_times =
           std::get_if<at_least_n_times_t>(&*quantifier);
-        at_least_n_times && at_least_n_times->n_times > repeated_matches) {
+        at_least_n_times && repeated_matches < at_least_n_times->n_times) {
+        return std::nullopt;
+      }
+      if (
+        const auto& between_n_and_m_times =
+          std::get_if<between_n_and_m_times_t>(&*quantifier);
+        between_n_and_m_times
+          && (repeated_matches < between_n_and_m_times->n_times
+        || repeated_matches > between_n_and_m_times->m_times)) {
         return std::nullopt;
       }
     }
@@ -631,7 +644,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("ca{2,}t"s, "cat"s);
+    auto match = grep("ca{2,4}t"s, "caat"s);
     int a;
     a = 0;
   }
