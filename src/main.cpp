@@ -701,12 +701,13 @@ int main(int argc, char* argv[]) {
     }
     return 0;
   } else {
-    std::string input;
-    std::getline(std::cin, input);
-    if (grep(pattern, input) == 0) {
-      std::cout << input << '\n';
-      return 0;
+    bool match = false;
+    for (std::string input; std::getline(std::cin, input);) {
+      if (grep(pattern, input) == 0) {
+        std::cout << input << '\n';
+        match = true;
+      }
     }
-    return 1;
+    return match ? 0 : 1;
   }
 }
