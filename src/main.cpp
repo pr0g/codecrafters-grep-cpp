@@ -574,7 +574,8 @@ std::optional<std::vector<match_result_t>> matcher(
       }
     }
   }
-  return match_results;
+  return match_results.empty() ? std::optional<std::vector<match_result_t>>{}
+                               : match_results;
 }
 
 std::vector<capture_group_t*> get_capture_groups(
@@ -650,7 +651,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("(jekyll|hyde)"s, "jekyll and hyde"s);
+    auto match = grep("\\d"s, "cherry"s);
     int a;
     a = 0;
   }
