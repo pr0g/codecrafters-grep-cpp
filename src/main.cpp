@@ -604,7 +604,6 @@ int grep(const std::string_view pattern, const std::string_view input) {
     if (auto match = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
       // std::cerr << input.substr(match->start, match->move) << '\n';
-      std::cout << input << '\n';
       return 0;
     } else {
       return 1;
@@ -704,6 +703,10 @@ int main(int argc, char* argv[]) {
   } else {
     std::string input;
     std::getline(std::cin, input);
-    return grep(pattern, input);
+    if (grep(pattern, input)) {
+      std::cout << input << '\n';
+      return 0;
+    }
+    return 1;
   }
 }
