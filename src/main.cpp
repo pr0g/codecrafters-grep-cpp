@@ -703,7 +703,7 @@ int main(int argc, char* argv[]) {
   } else {
     std::string input;
     std::getline(std::cin, input);
-    if (grep(pattern, input)) {
+    if (grep(pattern, input) == 0) {
       std::cout << input << '\n';
       return 0;
     }
