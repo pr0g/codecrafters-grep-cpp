@@ -576,6 +576,7 @@ std::optional<std::vector<match_result_t>> matcher(
         } else {
           match_results.push_back(match_result_t{.start = i, .move = *result});
         }
+        // subtract 1 to account for i++ in for loop
         i += *result - 1;
       }
     }
@@ -655,18 +656,13 @@ int main(int argc, char* argv[]) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  {
-    using std::literals::string_literals::operator""s;
-    auto match = grep("^mango"s, "prefix_mango"s);
-    int a;
-    a = 0;
-  }
-
   if (argc < 3) {
     std::cerr << "Expected at least three arguments" << std::endl;
     return 1;
   }
 
+  // TODO - not ideal... needs refactoring (use proper command line argument
+  // parsing)
   const auto [flag, pattern, recursive, show_matching_text] =
     [&] -> std::tuple<std::string, std::string, bool, bool> {
     if (argv[1] == std::string("-r")) {
@@ -680,7 +676,7 @@ int main(int argc, char* argv[]) {
   }();
 
   if (flag != "-E") {
-    std::cerr << "Expected first argument to be '-E'" << std::endl;
+    std::cerr << "Expected first argument to be '-E'\n";
     return 1;
   }
 
@@ -710,7 +706,7 @@ int main(int argc, char* argv[]) {
     } else if (argc >= 5) {
       for (const auto& match : matches) {
         for (const auto& line : match.second) {
-          std::cout << std::format("{}:{}", match.first, line) << '\n';
+          std::cout << std::format("{}:{}\n", match.first, line);
         }
       }
     }
