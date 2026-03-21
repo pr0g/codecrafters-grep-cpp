@@ -597,20 +597,20 @@ std::vector<capture_group_t*> get_capture_groups(
     });
 }
 
-int grep(const std::string_view pattern, const std::string_view input) {
+std::optional<std::string> grep(
+  const std::string_view pattern, const std::string_view input) {
   try {
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
     if (auto match = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
-      // std::cerr << input.substr(match->start, match->move) << '\n';
-      return 0;
+      return std::string(input.substr(match->start, match->move));
     } else {
-      return 1;
+      return std::nullopt;
     }
   } catch (const std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
-    return 1;
+    return std::nullopt;
   }
 }
 
@@ -623,7 +623,7 @@ void do_matches(
     std::optional<std::string> matched_filename;
     std::vector<std::string> matched_lines;
     for (std::string line; std::getline(reader, line);) {
-      if (grep(pattern, line) == 0) {
+      if (grep(pattern, line).has_value()) {
         if (!matched_filename) {
           matched_filename = filename;
         }
@@ -643,10 +643,10 @@ int main(int argc, char* argv[]) {
   std::cerr << std::unitbuf;
 
   {
-    // using std::literals::string_literals::operator""s;
-    // auto match = grep("ca{2,4}t"s, "caat"s);
-    // int a;
-    // a = 0;
+    using std::literals::string_literals::operator""s;
+    auto match = grep("7"s, "The king had 7 daughters"s);
+    int a;
+    a = 0;
   }
 
   if (argc < 3) {
@@ -654,12 +654,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  const auto [flag, pattern, recursive] =
-    [&] -> std::tuple<std::string, std::string, bool> {
+  const auto [flag, pattern, recursive, show_matching_text] =
+    [&] -> std::tuple<std::string, std::string, bool, bool> {
     if (argv[1] == std::string("-r")) {
-      return std::tuple{argv[2], argv[3], true};
+      return std::tuple{argv[2], argv[3], true, false};
     } else if (argv[1] == std::string("-E")) {
-      return std::tuple{argv[1], argv[2], false};
+      return std::tuple{argv[1], argv[2], false, false};
+    } else if (argv[1] == std::string("-o")) {
+      return std::tuple{argv[2], argv[3], false, true};
     }
     std::unreachable();
   }();
@@ -669,7 +671,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if (argc >= 4) {
+  if (argc >= 4 && !show_matching_text) {
     matches_t matches;
     for (int i = recursive ? 4 : 3; i < argc; i++) {
       if (recursive) {
@@ -701,13 +703,17 @@ int main(int argc, char* argv[]) {
     }
     return 0;
   } else {
-    bool match = false;
+    bool matched = false;
     for (std::string input; std::getline(std::cin, input);) {
-      if (grep(pattern, input) == 0) {
-        std::cout << input << '\n';
-        match = true;
+      if (auto match = grep(pattern, input)) {
+        if (show_matching_text) {
+          std::cout << *match << '\n';
+        } else {
+          std::cout << input << '\n';
+        }
+        matched = true;
       }
     }
-    return match ? 0 : 1;
+    return matched ? 0 : 1;
   }
 }
