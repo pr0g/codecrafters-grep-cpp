@@ -530,11 +530,11 @@ std::optional<int> match_here(
   return *next_opt + *move_opt;
 }
 
-std::optional<match_result_t> matcher(
+std::optional<std::vector<match_result_t>> matcher(
   std::string_view input, std::vector<std::vector<pattern_token_t>>& patterns,
   std::span<capture_group_t*> captured_groups) {
   if (input.empty()) {
-    return match_result_t{.start = 0, .move = 0};
+    return std::vector{match_result_t{.start = 0, .move = 0}};
   }
   if (patterns.empty()) {
     return std::nullopt;
@@ -554,6 +554,7 @@ std::optional<match_result_t> matcher(
   if (std::holds_alternative<end_anchor_t>(last_pattern.back())) {
     anchors |= anchor_e::end;
   }
+  std::vector<match_result_t> match_results;
   for (int i = 0; i < input.size(); i++) {
     for (auto& pattern : patterns) {
       std::span<pattern_token_t> pattern_span = pattern;
@@ -566,14 +567,14 @@ std::optional<match_result_t> matcher(
       if (
         const auto result =
           match_here(input, i, pattern_span, 0, anchors, captured_groups)) {
-        return match_result_t{.start = i, .move = *result};
+        match_results.push_back(match_result_t{.start = i, .move = *result});
+        i += *result - 1;
       } else if ((anchors & anchor_e::begin) != 0) {
-        goto end;
+        return std::nullopt;
       }
     }
   }
-end:
-  return std::nullopt;
+  return match_results;
 }
 
 std::vector<capture_group_t*> get_capture_groups(
@@ -597,14 +598,19 @@ std::vector<capture_group_t*> get_capture_groups(
     });
 }
 
-std::optional<std::string> grep(
+std::optional<std::vector<std::string>> grep(
   const std::string_view pattern, const std::string_view input) {
   try {
+    std::vector<std::string> matched_characters;
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
-    if (auto match = matcher(input, parsed_pattern, capture_groups)) {
+    if (auto matches = matcher(input, parsed_pattern, capture_groups)) {
       // debug output matching part of string
-      return std::string(input.substr(match->start, match->move));
+      for (const auto& match : *matches) {
+        matched_characters.push_back(
+          std::string(input.substr(match.start, match.move)));
+      }
+      return matched_characters;
     } else {
       return std::nullopt;
     }
@@ -644,7 +650,7 @@ int main(int argc, char* argv[]) {
 
   {
     using std::literals::string_literals::operator""s;
-    auto match = grep("7"s, "The king had 7 daughters"s);
+    auto match = grep("(jekyll|hyde)"s, "jekyll and hyde"s);
     int a;
     a = 0;
   }
@@ -705,9 +711,11 @@ int main(int argc, char* argv[]) {
   } else {
     bool matched = false;
     for (std::string input; std::getline(std::cin, input);) {
-      if (auto match = grep(pattern, input)) {
+      if (auto matches = grep(pattern, input)) {
         if (show_matching_text) {
-          std::cout << *match << '\n';
+          for (const auto match : *matches) {
+            std::cout << match << '\n';
+          }
         } else {
           std::cout << input << '\n';
         }
