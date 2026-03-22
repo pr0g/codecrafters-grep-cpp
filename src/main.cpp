@@ -707,12 +707,23 @@ int main(int argc, char* argv[]) {
       [](const char* characters) { return strcmp(characters, "-o") == 0; })
     != argv + argc;
 
-  const bool color = std::find_if(
-                       argv, argv + argc,
-                       [](const char* characters) {
-                         return strcmp(characters, "--color=always") == 0;
-                       })
-                  != argv + argc;
+  const auto color_it =
+    std::find_if(argv, argv + argc, [](const char* characters) {
+      return strncmp(characters, "--color=", 8) == 0;
+    });
+  const bool color = [&] {
+    if (color_it != argv + argc) {
+      const auto color_option = std::string(*color_it);
+      auto equals = color_option.find_first_of('=');
+      auto color_setting = color_option.substr(equals + 1);
+      if (color_setting == "always") {
+        return true;
+      } else if (color_setting == "never") {
+        return false;
+      }
+    }
+    return false;
+  }();
 
   if (!pattern.has_value()) {
     std::cerr << "Expected pattern to be provided following '-E'\n";
