@@ -611,20 +611,9 @@ std::vector<capture_group_t*> get_capture_groups(
 std::optional<std::vector<match_result_t>> grep(
   const std::string_view pattern, const std::string_view input) {
   try {
-    // std::vector<std::string> matched_characters;
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
     return matcher(input, parsed_pattern, capture_groups);
-    // if (auto matches = matcher(input, parsed_pattern, capture_groups)) {
-    // debug output matching part of string
-    // for (const auto& match : *matches) {
-    //   // matched_characters.push_back(
-    //     std::string(input.substr(match.start, match.move)));
-    // }
-    // return matched_characters;
-    // } else {
-    // return std::nullopt;
-    // }
   } catch (const std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
     return std::nullopt;
