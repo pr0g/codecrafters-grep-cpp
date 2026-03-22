@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -661,49 +662,64 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  // TODO - not ideal... needs refactoring (use proper command line argument
-  // parsing)
-  const auto [flag, pattern, recursive, show_matching_text] =
-    [&] -> std::tuple<std::string, std::string, bool, bool> {
-    if (argv[1] == std::string("-r")) {
-      return std::tuple{argv[2], argv[3], true, false};
-    } else if (argv[1] == std::string("-E")) {
-      return std::tuple{argv[1], argv[2], false, false};
-    } else if (argv[1] == std::string("-o")) {
-      return std::tuple{argv[2], argv[3], false, true};
+  std::optional<std::string> pattern;
+  int arguments_start;
+  if (
+    auto pattern_flag = std::find_if(
+      argv, argv + argc,
+      [](const char* characters) { return strcmp(characters, "-E") == 0; });
+    pattern_flag != argv + argc) {
+    if (
+      auto position = std::distance(argv, pattern_flag); position + 1 < argc) {
+      arguments_start = position + 2;
+      pattern = argv[position + 1];
     }
-    std::unreachable();
-  }();
+  }
 
-  if (flag != "-E") {
-    std::cerr << "Expected first argument to be '-E'\n";
+  const bool recursive =
+    std::find_if(
+      argv, argv + argc,
+      [](const char* characters) { return strcmp(characters, "-r") == 0; })
+    != argv + argc;
+
+  const bool show_matching_text =
+    std::find_if(
+      argv, argv + argc,
+      [](const char* characters) { return strcmp(characters, "-o") == 0; })
+    != argv + argc;
+
+  if (!pattern.has_value()) {
+    std::cerr << "Expected pattern to be provided following '-E'\n";
     return 1;
   }
 
-  if (argc >= 4 && !show_matching_text) {
+  if (argc > arguments_start && !show_matching_text) {
     matches_t matches;
-    for (int i = recursive ? 4 : 3; i < argc; i++) {
+    for (int i = arguments_start; i < argc; i++) {
       if (recursive) {
         namespace fs = std::filesystem;
         const std::string& directory = argv[i];
+        if (!fs::exists(directory) && !fs::is_directory(directory)) {
+          continue;
+        }
         for (const fs::directory_entry& entry :
              fs::recursive_directory_iterator(directory)) {
           if (fs::is_regular_file(entry.path())) {
-            do_matches(entry.path().string(), pattern, matches);
+            do_matches(entry.path().string(), *pattern, matches);
           }
         }
       } else {
-        do_matches(argv[i], pattern, matches);
+        do_matches(argv[i], *pattern, matches);
       }
     }
     if (matches.empty()) {
       return 1;
     }
-    if (argc == 4) {
+    if (argc == arguments_start + 1 && !recursive) {
       for (const auto& line : matches.front().second) {
         std::cout << line << '\n';
       }
-    } else if (argc >= 5) {
+    } else if (argc > arguments_start) {
       for (const auto& match : matches) {
         for (const auto& line : match.second) {
           std::cout << std::format("{}:{}\n", match.first, line);
@@ -714,7 +730,7 @@ int main(int argc, char* argv[]) {
   } else {
     bool matched = false;
     for (std::string input; std::getline(std::cin, input);) {
-      if (auto matches = grep(pattern, input)) {
+      if (auto matches = grep(*pattern, input)) {
         if (show_matching_text) {
           for (const auto match : *matches) {
             std::cout << match << '\n';
