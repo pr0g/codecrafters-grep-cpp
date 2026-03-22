@@ -9,6 +9,7 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <unistd.h>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -707,20 +708,37 @@ int main(int argc, char* argv[]) {
       [](const char* characters) { return strcmp(characters, "-o") == 0; })
     != argv + argc;
 
-  const auto color_it =
-    std::find_if(argv, argv + argc, [](const char* characters) {
-      return strncmp(characters, "--color=", 8) == 0;
-    });
-  const bool color = [&] {
-    if (color_it != argv + argc) {
+  enum class color_e { always, never, automatic };
+
+  const color_e color = [&] {
+    if (
+      const auto color_it = std::find_if(
+        argv, argv + argc,
+        [](const char* characters) {
+          return strncmp(characters, "--color=", 8) == 0;
+        });
+      color_it != argv + argc) {
       const auto color_option = std::string(*color_it);
       auto equals = color_option.find_first_of('=');
       auto color_setting = color_option.substr(equals + 1);
       if (color_setting == "always") {
-        return true;
+        return color_e::always;
       } else if (color_setting == "never") {
-        return false;
+        return color_e::never;
+      } else if (color_setting == "auto") {
+        return color_e::automatic;
       }
+    }
+    return color_e::automatic;
+  }();
+
+  bool use_color = [&] {
+    if (color == color_e::automatic) {
+      return !!isatty(STDOUT_FILENO);
+    } else if (color == color_e::always) {
+      return true;
+    } else if (color == color_e::never) {
+      return false;
     }
     return false;
   }();
@@ -744,12 +762,12 @@ int main(int argc, char* argv[]) {
           if (fs::is_regular_file(entry.path())) {
             do_matches(
               entry.path().string(), *pattern, matches,
-              settings_t{.emphasise_match = color});
+              settings_t{.emphasise_match = use_color});
           }
         }
       } else {
         do_matches(
-          argv[i], *pattern, matches, settings_t{.emphasise_match = color});
+          argv[i], *pattern, matches, settings_t{.emphasise_match = use_color});
       }
     }
     if (matches.empty()) {
@@ -777,8 +795,9 @@ int main(int argc, char* argv[]) {
                       << '\n';
           }
         } else {
-          std::cout << (color ? emphasise_line(input, *matched_results) : input)
-                    << '\n';
+          std::cout
+            << (use_color ? emphasise_line(input, *matched_results) : input)
+            << '\n';
         }
         matched = true;
       }
