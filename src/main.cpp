@@ -607,22 +607,23 @@ std::vector<capture_group_t*> get_capture_groups(
     });
 }
 
-std::optional<std::vector<std::string>> grep(
+std::optional<std::vector<match_result_t>> grep(
   const std::string_view pattern, const std::string_view input) {
   try {
-    std::vector<std::string> matched_characters;
+    // std::vector<std::string> matched_characters;
     auto parsed_pattern = parse_pattern(pattern);
     auto capture_groups = get_capture_groups(parsed_pattern);
-    if (auto matches = matcher(input, parsed_pattern, capture_groups)) {
-      // debug output matching part of string
-      for (const auto& match : *matches) {
-        matched_characters.push_back(
-          std::string(input.substr(match.start, match.move)));
-      }
-      return matched_characters;
-    } else {
-      return std::nullopt;
-    }
+    return matcher(input, parsed_pattern, capture_groups);
+    // if (auto matches = matcher(input, parsed_pattern, capture_groups)) {
+    // debug output matching part of string
+    // for (const auto& match : *matches) {
+    //   // matched_characters.push_back(
+    //     std::string(input.substr(match.start, match.move)));
+    // }
+    // return matched_characters;
+    // } else {
+    // return std::nullopt;
+    // }
   } catch (const std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
     return std::nullopt;
@@ -631,18 +632,36 @@ std::optional<std::vector<std::string>> grep(
 
 using matches_t = std::vector<std::pair<std::string, std::vector<std::string>>>;
 
+struct settings_t {
+  bool emphasise_match : 1;
+};
+
+std::string emphasise_line(
+  std::string line, const std::vector<match_result_t>& matched_results) {
+  for (const match_result_t& match_result :
+       matched_results | std::views::reverse) {
+    line.insert(match_result.start + match_result.move, "\033[m");
+    line.insert(match_result.start, "\033[01;31m");
+  }
+  return line;
+}
+
 void do_matches(
   const std::string& filename, const std::string_view pattern,
-  matches_t& matches) {
+  matches_t& matches, settings_t settings) {
   if (std::ifstream reader(filename); reader.is_open()) {
     std::optional<std::string> matched_filename;
     std::vector<std::string> matched_lines;
     for (std::string line; std::getline(reader, line);) {
-      if (grep(pattern, line).has_value()) {
+      if (
+        const auto matched_results = grep(pattern, line);
+        matched_results.has_value()) {
         if (!matched_filename) {
           matched_filename = filename;
         }
-        matched_lines.push_back(line);
+        matched_lines.push_back(
+          settings.emphasise_match ? emphasise_line(line, *matched_results)
+                                   : line);
       }
     }
     if (matched_filename) {
@@ -688,6 +707,13 @@ int main(int argc, char* argv[]) {
       [](const char* characters) { return strcmp(characters, "-o") == 0; })
     != argv + argc;
 
+  const bool color = std::find_if(
+                       argv, argv + argc,
+                       [](const char* characters) {
+                         return strcmp(characters, "--color=always") == 0;
+                       })
+                  != argv + argc;
+
   if (!pattern.has_value()) {
     std::cerr << "Expected pattern to be provided following '-E'\n";
     return 1;
@@ -705,11 +731,14 @@ int main(int argc, char* argv[]) {
         for (const fs::directory_entry& entry :
              fs::recursive_directory_iterator(directory)) {
           if (fs::is_regular_file(entry.path())) {
-            do_matches(entry.path().string(), *pattern, matches);
+            do_matches(
+              entry.path().string(), *pattern, matches,
+              settings_t{.emphasise_match = color});
           }
         }
       } else {
-        do_matches(argv[i], *pattern, matches);
+        do_matches(
+          argv[i], *pattern, matches, settings_t{.emphasise_match = color});
       }
     }
     if (matches.empty()) {
@@ -730,13 +759,15 @@ int main(int argc, char* argv[]) {
   } else {
     bool matched = false;
     for (std::string input; std::getline(std::cin, input);) {
-      if (auto matches = grep(*pattern, input)) {
+      if (auto matched_results = grep(*pattern, input)) {
         if (show_matching_text) {
-          for (const auto match : *matches) {
-            std::cout << match << '\n';
+          for (const auto match : *matched_results) {
+            std::cout << std::string_view(input).substr(match.start, match.move)
+                      << '\n';
           }
         } else {
-          std::cout << input << '\n';
+          std::cout << (color ? emphasise_line(input, *matched_results) : input)
+                    << '\n';
         }
         matched = true;
       }

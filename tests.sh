@@ -25,7 +25,7 @@ if [ $? -ne 0 ]; then
   echo "test failed - apple"
 fi
 
-echo -n "colour" | build/Debug/grep -E "colou?r"
+echo -n "colour" | build/Debug/grep --color=always -E "colou?r"
 if [ $? -ne 0 ]; then
   echo "test failed - colour"
 fi
@@ -125,7 +125,7 @@ if [ $? -ne 0 ]; then
   echo "test failed - caaars"
 fi
 
-echo -n "dog" | build/Debug/grep -E "d"
+echo -n "dog" | build/Debug/grep --color=always -E "d"
 if [ $? -ne 0 ]; then
   echo "test failed - dog"
 fi
